@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
-	golang.org/x/crypto v0.19.0
+	golang.org/x/term v0.17.0
 )
 
 require (
@@ -43,7 +43,6 @@ require (
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

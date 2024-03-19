@@ -15,7 +15,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var root = &cobra.Command{
@@ -92,7 +92,7 @@ var root = &cobra.Command{
 
 		m := view.New(content, padding)
 		if !interactive {
-			width, _, err := terminal.GetSize(0)
+			width, _, err := term.GetSize(0)
 			if err != nil {
 				panic(err)
 			}
