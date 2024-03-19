@@ -41,7 +41,7 @@ func (c Content) String() string {
 	case Verse:
 		return VerseStyle.Render(c.Number) + c.Content
 	case VerseCont:
-		return "    " + c.Content
+		return c.Content
 	default:
 		return ""
 	}

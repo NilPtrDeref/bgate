@@ -26,12 +26,14 @@ var root = &cobra.Command{
 		viper.BindPFlag("translation", cmd.Flag("translation"))
 		viper.BindPFlag("interactive", cmd.Flag("interactive"))
 		viper.BindPFlag("padding", cmd.Flag("padding"))
+		viper.BindPFlag("wrap", cmd.Flag("wrap"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
 		query := args[0]
 		interactive := viper.GetBool("interactive")
 		padding := viper.GetInt("padding")
+		wrap := viper.GetBool("wrap")
 
 		document, err := search.Passage(translation, query)
 		cobra.CheckErr(err)
@@ -90,7 +92,7 @@ var root = &cobra.Command{
 			cobra.CheckErr(errors.New("No content found"))
 		}
 
-		m := view.New(content, padding)
+		m := view.New(content, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {
@@ -123,6 +125,7 @@ func init() {
 	root.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
 	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
 	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
+	root.Flags().BoolP("wrap", "w", false, "Wrap verses, this will cause it to not start each verse on a new line.")
 
 	home, err := os.UserHomeDir()
 	if err != nil {

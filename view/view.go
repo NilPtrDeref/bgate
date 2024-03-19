@@ -11,6 +11,7 @@ import (
 
 type Model struct {
 	content   []model.Content
+	wrap      bool
 	padding   int
 	lines     []string
 	scroll    int
@@ -19,9 +20,10 @@ type Model struct {
 	vwidth    int
 }
 
-func New(content []model.Content, padding int) *Model {
+func New(content []model.Content, wrap bool, padding int) *Model {
 	return &Model{
 		content: content,
+		wrap:    wrap,
 		padding: padding,
 		scroll:  0,
 		vheight: 20,
@@ -33,7 +35,7 @@ func (m *Model) Init() tea.Cmd {
 	return nil
 }
 
-func chunks(s string, chunkSize int) []string {
+func (m *Model) chunks(s string, chunkSize int) []string {
 	words := strings.Split(s, " ")
 	var chunks []string
 	var current []string
@@ -42,12 +44,12 @@ func chunks(s string, chunkSize int) []string {
 	for _, word := range words {
 		var wsize, _ = lipgloss.Size(word)
 		var size = chunkSize
-		if len(chunks) > 0 {
+		if !m.wrap && len(chunks) > 0 {
 			size -= 4
 		}
 
 		if ccount+wsize > size {
-			if len(chunks) > 0 {
+			if !m.wrap && len(chunks) > 0 {
 				current[0] = "    " + current[0]
 			}
 			chunks = append(chunks, strings.Join(current, " "))
@@ -60,7 +62,7 @@ func chunks(s string, chunkSize int) []string {
 		current = append(current, word)
 	}
 
-	if len(chunks) > 0 {
+	if !m.wrap && len(chunks) > 0 {
 		current[0] = "    " + current[0]
 	}
 	chunks = append(chunks, strings.Join(current, " "))
@@ -71,17 +73,30 @@ func chunks(s string, chunkSize int) []string {
 func (m *Model) resize(width int) {
 	lines := []string{}
 
-	for _, c := range m.content {
-		chunked := chunks(c.String(), width)
-		for i, chunk := range chunked {
-			switch c.Type {
-			case model.Section:
-				chunked[i] = model.SectionStyle.Render(chunk)
-			case model.Chapter:
-				chunked[i] = model.ChapterStyle.Render(chunk)
+	for i := 0; i < len(m.content); i++ {
+		c := m.content[i]
+		line := c.String()
+
+		if !m.wrap && c.Type == model.VerseCont {
+			line = "    " + line
+		}
+
+		if m.wrap && (c.Type == model.Verse || c.Type == model.VerseCont) {
+			for {
+				if i+1 >= len(m.content) {
+					break
+				}
+
+				if m.content[i+1].Type != model.Verse && m.content[i+1].Type != model.VerseCont {
+					break
+				}
+
+				line = strings.Join([]string{line, m.content[i+1].String()}, " ")
+				i++
 			}
 		}
 
+		chunked := m.chunks(line, width)
 		lines = append(lines, chunked...)
 	}
 
