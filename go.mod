@@ -1,4 +1,4 @@
-module bgate
+module github.com/woodywood117/bgate
 
 go 1.22.0
 

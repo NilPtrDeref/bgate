@@ -1,7 +1,7 @@
 package view
 
 import (
-	"bgate/model"
+	"github.com/woodywood117/bgate/model"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"

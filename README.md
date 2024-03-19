@@ -21,6 +21,12 @@ Flags:
 Use "bgate [command] --help" for more information about a command.
 ```
 
+## Install
+To install, you must have golang installed on your machine. You can just run:
+```
+go install github.com/woodywood117/bgate@latest
+```
+
 ## Interactive Controls
 * `j` - Down
 * `k` - Up

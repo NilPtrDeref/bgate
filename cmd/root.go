@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"bgate/model"
-	"bgate/search"
-	"bgate/view"
 	"errors"
 	"fmt"
 	"math"
 	"os"
 	"strings"
+
+	"github.com/woodywood117/bgate/model"
+	"github.com/woodywood117/bgate/search"
+	"github.com/woodywood117/bgate/view"
 
 	"github.com/PuerkitoBio/goquery"
 	tea "github.com/charmbracelet/bubbletea"
