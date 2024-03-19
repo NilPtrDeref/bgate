@@ -9,15 +9,17 @@ import (
 
 type Model struct {
 	content []model.Content
+	padding int
 	lines   []string
 	scroll  int
 	vheight int
 	vwidth  int
 }
 
-func New(content []model.Content) *Model {
+func New(content []model.Content, padding int) *Model {
 	return &Model{
 		content: content,
+		padding: padding,
 		scroll:  0,
 		vheight: 20,
 		vwidth:  20,
@@ -88,7 +90,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.vheight = msg.Height
 		m.vwidth = msg.Width
-		m.resize(msg.Width)
+		m.resize(msg.Width - 2*m.padding)
 
 		m.scroll = min(
 			m.scroll,
@@ -101,11 +103,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) View() string {
 	var view strings.Builder
 
+	lpad := strings.Repeat(" ", m.padding)
 	for i := 0; i < m.vheight-1; i++ {
 		if m.scroll+i >= len(m.lines) {
 			break
 		}
-		view.WriteString(m.lines[m.scroll+i] + "\n")
+		view.WriteString(lpad + m.lines[m.scroll+i] + "\n")
 	}
 
 	return view.String()

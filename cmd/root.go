@@ -22,11 +22,13 @@ var root = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("translation", cmd.Flag("translation"))
 		viper.BindPFlag("interactive", cmd.Flag("interactive"))
+		viper.BindPFlag("padding", cmd.Flag("padding"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
 		query := args[0]
 		interactive := viper.GetBool("interactive")
+		padding := viper.GetInt("padding")
 
 		document, err := search.Passage(translation, query)
 		cobra.CheckErr(err)
@@ -86,7 +88,7 @@ var root = &cobra.Command{
 		}
 
 		if interactive {
-			m := view.New(content)
+			m := view.New(content, padding)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
@@ -121,6 +123,7 @@ func init() {
 	root.Flags().StringVarP(&config, "config", "c", "~/.config/bgate/config.json", "Config file to use.")
 	root.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
 	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
+	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 
 	home, err := os.UserHomeDir()
 	if err != nil {

@@ -47,7 +47,7 @@ func (c Content) String() string {
 		}
 	case VerseCont:
 		{
-			view.WriteString(" \t" + c.Content)
+			view.WriteString("     " + c.Content)
 		}
 	}
 	return view.String()
