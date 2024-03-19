@@ -21,12 +21,12 @@ var root = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("translation", cmd.Flag("translation"))
-		viper.BindPFlag("print", cmd.Flag("print"))
+		viper.BindPFlag("interactive", cmd.Flag("interactive"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
 		query := args[0]
-		interactive, _ := cmd.Flags().GetBool("interactive")
+		interactive := viper.GetBool("interactive")
 
 		document, err := search.Passage(translation, query)
 		cobra.CheckErr(err)
