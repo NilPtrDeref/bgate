@@ -31,24 +31,36 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func chunks(s string, chunkSize int) []string {
-	if len(s) == 0 {
-		return nil
-	}
-	if chunkSize >= len(s) {
-		return []string{s}
-	}
-	var chunks []string = make([]string, 0, (len(s)-1)/chunkSize+1)
-	currentLen := 0
-	currentStart := 0
-	for i := range s {
-		if currentLen == chunkSize {
-			chunks = append(chunks, s[currentStart:i])
-			currentLen = 0
-			currentStart = i
+	words := strings.Split(s, " ")
+	var chunks []string
+	var current []string
+	var ccount int
+
+	for _, word := range words {
+		var size = chunkSize
+		if len(chunks) > 0 {
+			size -= 4
 		}
-		currentLen++
+
+		if ccount+len(word) > size {
+			if len(chunks) > 0 {
+				current[0] = "    " + current[0]
+			}
+			chunks = append(chunks, strings.Join(current, " "))
+
+			ccount = 0
+			current = nil
+		}
+
+		ccount += len(word) + 1
+		current = append(current, word)
 	}
-	chunks = append(chunks, s[currentStart:])
+
+	if len(chunks) > 0 {
+		current[0] = "    " + current[0]
+	}
+	chunks = append(chunks, strings.Join(current, " "))
+
 	return chunks
 }
 

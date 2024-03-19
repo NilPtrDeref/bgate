@@ -33,7 +33,7 @@ func (c Content) String() string {
 	case Section:
 		return c.Content
 	case Chapter:
-		return c.Number
+		return " " + c.Number
 	case Verse:
 		return c.Number + c.Content
 	case VerseCont:
