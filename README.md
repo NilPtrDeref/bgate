@@ -17,6 +17,7 @@ Flags:
   -i, --interactive          Interactive view, allows you to scroll using j/up and k/down.
   -p, --padding int          Horizontal padding in character count.
   -t, --translation string   The translation of the Bible to search for.
+  -w, --wrap                 Wrap verses, this will cause it to not start each verse on a new line.
 
 Use "bgate [command] --help" for more information about a command.
 ```
