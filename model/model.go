@@ -1,8 +1,6 @@
 package model
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -31,24 +29,16 @@ type Content struct {
 }
 
 func (c Content) String() string {
-	view := strings.Builder{}
 	switch c.Type {
 	case Section:
-		{
-			view.WriteString(" " + c.Content)
-		}
+		return c.Content
 	case Chapter:
-		{
-			view.WriteString(" " + c.Number)
-		}
+		return c.Number
 	case Verse:
-		{
-			view.WriteString(" " + c.Number + c.Content)
-		}
+		return c.Number + c.Content
 	case VerseCont:
-		{
-			view.WriteString("     " + c.Content)
-		}
+		return "    " + c.Content
+	default:
+		return ""
 	}
-	return view.String()
 }
