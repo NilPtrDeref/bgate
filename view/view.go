@@ -8,12 +8,13 @@ import (
 )
 
 type Model struct {
-	content []model.Content
-	padding int
-	lines   []string
-	scroll  int
-	vheight int
-	vwidth  int
+	content   []model.Content
+	padding   int
+	lines     []string
+	scroll    int
+	maxscroll int
+	vheight   int
+	vwidth    int
 }
 
 func New(content []model.Content, padding int) *Model {
@@ -90,10 +91,8 @@ func (m *Model) SetWindowSize(width, height int) {
 	m.vwidth = width
 	m.resize(width - 2*m.padding)
 
-	m.scroll = min(
-		m.scroll,
-		max(0, len(m.lines)-m.vheight),
-	)
+	m.maxscroll = max(0, (len(m.lines)-m.vheight)+1)
+	m.scroll = min(m.scroll, m.maxscroll)
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -103,13 +102,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc", "q", "ctrl+c":
 			return m, tea.Quit
 		case "j", "down":
-			if m.scroll <= len(m.lines)-m.vheight {
+			if m.scroll < m.maxscroll {
 				m.scroll++
 			}
 		case "k", "up":
 			if m.scroll > 0 {
 				m.scroll--
 			}
+		case "g":
+			m.scroll = 0
+		case "G":
+			m.scroll = m.maxscroll
 		}
 	case tea.WindowSizeMsg:
 		m.SetWindowSize(msg.Width, msg.Height)
