@@ -13,6 +13,10 @@ var ChapterStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#EF476F")).
 	Background(lipgloss.Color("#FCFCFC"))
 
+var VerseStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#6A7FDB"))
+
 type ContentType uint8
 
 var (
@@ -31,11 +35,11 @@ type Content struct {
 func (c Content) String() string {
 	switch c.Type {
 	case Section:
-		return c.Content
+		return SectionStyle.Render(c.Content)
 	case Chapter:
-		return " " + c.Number
+		return ChapterStyle.Render(" " + c.Number)
 	case Verse:
-		return c.Number + c.Content
+		return VerseStyle.Render(c.Number) + c.Content
 	case VerseCont:
 		return "    " + c.Content
 	default:

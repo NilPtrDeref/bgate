@@ -1,10 +1,12 @@
 package view
 
 import (
-	"github.com/woodywood117/bgate/model"
 	"strings"
 
+	"github.com/woodywood117/bgate/model"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
@@ -38,12 +40,13 @@ func chunks(s string, chunkSize int) []string {
 	var ccount int
 
 	for _, word := range words {
+		var wsize, _ = lipgloss.Size(word)
 		var size = chunkSize
 		if len(chunks) > 0 {
 			size -= 4
 		}
 
-		if ccount+len(word) > size {
+		if ccount+wsize > size {
 			if len(chunks) > 0 {
 				current[0] = "    " + current[0]
 			}
@@ -53,7 +56,7 @@ func chunks(s string, chunkSize int) []string {
 			current = nil
 		}
 
-		ccount += len(word) + 1
+		ccount += wsize + 1
 		current = append(current, word)
 	}
 
