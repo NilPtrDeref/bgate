@@ -20,3 +20,10 @@ Flags:
 
 Use "bgate [command] --help" for more information about a command.
 ```
+
+## Interactive Controls
+* `j` - Down
+* `k` - Up
+* `g` - Top
+* `G` - Bottom
+* `q/esc/ctrl+c` - Quit
