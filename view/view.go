@@ -72,6 +72,18 @@ func (m *Model) resize(width int) {
 	m.lines = lines
 }
 
+func (m *Model) SetWindowSize(width, height int) {
+	m.vheight = height
+
+	m.vwidth = width
+	m.resize(width - 2*m.padding)
+
+	m.scroll = min(
+		m.scroll,
+		max(0, len(m.lines)-m.vheight),
+	)
+}
+
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -88,14 +100,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
-		m.vheight = msg.Height
-		m.vwidth = msg.Width
-		m.resize(msg.Width - 2*m.padding)
-
-		m.scroll = min(
-			m.scroll,
-			max(0, len(m.lines)-m.vheight),
-		)
+		m.SetWindowSize(msg.Width, msg.Height)
 	}
 	return m, nil
 }

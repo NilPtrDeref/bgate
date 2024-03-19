@@ -6,6 +6,7 @@ import (
 	"bgate/view"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var root = &cobra.Command{
@@ -87,26 +89,22 @@ var root = &cobra.Command{
 			cobra.CheckErr(errors.New("No content found"))
 		}
 
-		if interactive {
-			m := view.New(content, padding)
-			p := tea.NewProgram(m)
-			if _, err := p.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
-				os.Exit(1)
+		m := view.New(content, padding)
+		if !interactive {
+			width, _, err := terminal.GetSize(0)
+			if err != nil {
+				panic(err)
 			}
+			m.SetWindowSize(width, math.MaxInt32)
+			v := m.View()
+			fmt.Print(v)
 			return
 		}
-		for _, c := range content {
-			var output string
-			switch c.Type {
-			case model.Section:
-				output = model.SectionStyle.Render(c.String())
-			case model.Chapter:
-				output = model.ChapterStyle.Render(c.String())
-			default:
-				output = c.String()
-			}
-			fmt.Println(output)
+
+		p := tea.NewProgram(m)
+		if _, err := p.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }
