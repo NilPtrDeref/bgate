@@ -15,6 +15,7 @@ Flags:
   -c, --config string        Config file to use. (default "~/.config/bgate/config.json")
   -h, --help                 help for bgate
   -i, --interactive          Interactive view, allows you to scroll using j/up and k/down.
+  -p, --padding int          Horizontal padding in character count.
   -t, --translation string   The translation of the Bible to search for.
 
 Use "bgate [command] --help" for more information about a command.
