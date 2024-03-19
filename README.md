@@ -34,3 +34,13 @@ go install github.com/woodywood117/bgate@latest
 * `g` - Top
 * `G` - Bottom
 * `q/esc/ctrl+c` - Quit
+
+## Config
+Config values use the same name as the flag. Below is my personal config.
+``` json
+{
+	"translation": "LSB",
+	"interactive": true,
+	"padding": 60
+}
+```
