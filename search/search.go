@@ -87,10 +87,7 @@ func Passage(translation, query string) ([]model.Content, error) {
 				return
 			}
 
-			content = append(content, model.Content{
-				Type:    model.VerseCont,
-				Content: line.Text(),
-			})
+			content[len(content)-1].Content += " " + line.Text()
 		})
 	})
 

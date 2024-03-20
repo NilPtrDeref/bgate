@@ -77,17 +77,13 @@ func (r *Reader) resize(width int) {
 		c := r.content[i]
 		line := c.String()
 
-		if !r.wrap && c.Type == model.VerseCont {
-			line = "    " + line
-		}
-
-		if r.wrap && (c.Type == model.Verse || c.Type == model.VerseCont) {
+		if r.wrap && (c.Type == model.Verse) {
 			for {
 				if i+1 >= len(r.content) {
 					break
 				}
 
-				if r.content[i+1].Type != model.Verse && r.content[i+1].Type != model.VerseCont {
+				if r.content[i+1].Type != model.Verse {
 					break
 				}
 

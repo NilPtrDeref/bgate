@@ -22,10 +22,9 @@ var VerseStyle = lipgloss.NewStyle().
 type ContentType uint8
 
 var (
-	Section   ContentType = 1
-	Chapter   ContentType = 2
-	Verse     ContentType = 3
-	VerseCont ContentType = 4
+	Section ContentType = 1
+	Chapter ContentType = 2
+	Verse   ContentType = 3
 )
 
 type Content struct {
@@ -42,8 +41,6 @@ func (c Content) String() string {
 		return ChapterStyle.Render(" " + c.Number)
 	case Verse:
 		return VerseStyle.Render(c.Number) + c.Content
-	case VerseCont:
-		return c.Content
 	default:
 		return ""
 	}
