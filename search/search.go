@@ -2,8 +2,10 @@ package search
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -13,7 +15,7 @@ import (
 
 /// URL format: https://www.biblegateway.com/passage/?search=Genesis+1&version=LSB
 
-func Passage(translation, query string) ([]model.Content, error) {
+func Query(translation, query string) ([]model.Verse, error) {
 	base, err := url.Parse("https://www.biblegateway.com/passage/")
 	if err != nil {
 		return nil, err
@@ -43,55 +45,64 @@ func Passage(translation, query string) ([]model.Content, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	document.Find(".crossreference").Remove()
 	document.Find(".footnote").Remove()
 
-	content := []model.Content{}
-	document.Find(".passage-content").Each(func(pi int, passage *goquery.Selection) {
+	verses := []model.Verse{}
+	document.Find(".passage-table").Each(func(pi int, passage *goquery.Selection) {
+		passage.Find(".translation").Remove()
+
+		var book string
+		{
+			ptext := passage.Find(".dropdown-display-text").Text()
+			psplit := strings.Split(ptext, " ")
+			book = strings.Join(psplit[:len(psplit)-1], " ")
+		}
+
+		var title *string
 		passage.Find(".text").Each(func(li int, line *goquery.Selection) {
+			// Store title for the next verse
 			if strings.HasPrefix(line.Parent().Nodes[0].Data, "h") {
-				content = append(content, model.Content{
-					Type:    model.Section,
-					Content: line.Text(),
+				t := line.Text()
+				title = &t
+				return
+			}
+
+			class, ok := line.Attr("class")
+			if !ok {
+				fmt.Println("No class on text line")
+				os.Exit(1)
+			}
+
+			csplit := strings.Split(class, " ")
+			if len(csplit) != 2 {
+				fmt.Println("Unexpected class format")
+				os.Exit(1)
+			}
+
+			csplit = strings.Split(csplit[1], "-")
+			if len(csplit) != 3 {
+				fmt.Println("Unexpected inner class format")
+				os.Exit(1)
+			}
+
+			if line.Find(".versenum").Remove().Length() > 0 || line.Find(".chapternum").Remove().Length() > 0 {
+				verses = append(verses, model.Verse{
+					Book:    book,
+					Chapter: csplit[1],
+					Number:  csplit[2],
+					Text:    line.Text(),
+					Title:   title,
 				})
-				return
+			} else {
+				verses[len(verses)-1].Text += " " + line.Text()
 			}
 
-			chapter := line.Find(".chapternum")
-			if chapter.Length() > 0 {
-				c := model.Content{
-					Type:   model.Chapter,
-					Number: chapter.Text(),
-				}
-				chapter.Remove()
-				content = append(content, c)
-
-				c.Type = model.Verse
-				c.Number = "1 "
-				c.Content = line.Text()
-				content = append(content, c)
-				return
-			}
-
-			verse := line.Find(".versenum")
-			if verse.Length() > 0 {
-				c := model.Content{
-					Type:   model.Verse,
-					Number: verse.Text(),
-				}
-				verse.Remove()
-
-				c.Content = line.Text()
-				content = append(content, c)
-				return
-			}
-
-			content[len(content)-1].Content += " " + line.Text()
+			title = nil
 		})
 	})
 
-	return content, nil
+	return verses, nil
 }
 
 func Booklist(translation string) ([]model.Book, error) {

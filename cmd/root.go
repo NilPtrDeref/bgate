@@ -33,14 +33,14 @@ var root = &cobra.Command{
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
 
-		content, err := search.Passage(translation, query)
+		verses, err := search.Query(translation, query)
 		cobra.CheckErr(err)
 
-		if len(content) == 0 {
+		if len(verses) == 0 {
 			cobra.CheckErr(errors.New("No content found"))
 		}
 
-		r := view.NewReader(content, wrap, padding)
+		r := view.NewReader(verses, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {

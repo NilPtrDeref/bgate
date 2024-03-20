@@ -10,7 +10,7 @@ import (
 )
 
 type Reader struct {
-	content   []model.Content
+	verses    []model.Verse
 	wrap      bool
 	padding   int
 	lines     []string
@@ -20,9 +20,9 @@ type Reader struct {
 	vwidth    int
 }
 
-func NewReader(content []model.Content, wrap bool, padding int) *Reader {
+func NewReader(verses []model.Verse, wrap bool, padding int) *Reader {
 	return &Reader{
-		content: content,
+		verses:  verses,
 		wrap:    wrap,
 		padding: padding,
 		scroll:  0,
@@ -73,21 +73,25 @@ func (r *Reader) chunks(s string, chunkSize int) []string {
 func (r *Reader) resize(width int) {
 	lines := []string{}
 
-	for i := 0; i < len(r.content); i++ {
-		c := r.content[i]
-		line := c.String()
+	for i := 0; i < len(r.verses); i++ {
+		current := r.verses[i]
+		if current.HasTitle() {
+			lines = append(lines, current.TitleString())
+		}
 
-		if r.wrap && (c.Type == model.Verse) {
+		if current.Number == "1" {
+			lines = append(lines, current.ChapterString())
+		}
+
+		line := current.NumberString() + current.Text
+		if r.wrap {
 			for {
-				if i+1 >= len(r.content) {
+				if i+1 >= len(r.verses) || r.verses[i+1].HasTitle() {
 					break
 				}
 
-				if r.content[i+1].Type != model.Verse {
-					break
-				}
-
-				line = strings.Join([]string{line, r.content[i+1].String()}, " ")
+				current = r.verses[i+1]
+				line = strings.Join([]string{line, current.NumberString() + current.Text}, " ")
 				i++
 			}
 		}

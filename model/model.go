@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var SectionStyle = lipgloss.NewStyle().
+var TitleStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#06D6A0"))
 
@@ -15,35 +15,32 @@ var ChapterStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#EF476F")).
 	Background(lipgloss.Color("#FCFCFC"))
 
-var VerseStyle = lipgloss.NewStyle().
+var NumberStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#6A7FDB"))
 
-type ContentType uint8
-
-var (
-	Section ContentType = 1
-	Chapter ContentType = 2
-	Verse   ContentType = 3
-)
-
-type Content struct {
-	Type    ContentType
+type Verse struct {
+	Book    string
+	Chapter string
 	Number  string
-	Content string
+	Text    string
+	Title   *string
 }
 
-func (c Content) String() string {
-	switch c.Type {
-	case Section:
-		return SectionStyle.Render(c.Content)
-	case Chapter:
-		return ChapterStyle.Render(" " + c.Number)
-	case Verse:
-		return VerseStyle.Render(c.Number) + c.Content
-	default:
-		return ""
-	}
+func (v Verse) HasTitle() bool {
+	return v.Title != nil
+}
+
+func (v Verse) TitleString() string {
+	return TitleStyle.Render(*v.Title)
+}
+
+func (v Verse) ChapterString() string {
+	return ChapterStyle.Render(" " + v.Chapter + " ")
+}
+
+func (v Verse) NumberString() string {
+	return NumberStyle.Render(v.Number + " ")
 }
 
 var BookStyle = lipgloss.NewStyle().
