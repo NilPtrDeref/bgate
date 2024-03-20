@@ -20,12 +20,12 @@ var NumberStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#6A7FDB"))
 
 type Verse struct {
-	Book    string
-	Chapter int
-	Number  int
-	Part    int
-	Text    string
-	Title   *string
+	Book    string  `db:"book"`
+	Chapter int     `db:"chapter"`
+	Number  int     `db:"number"`
+	Part    int     `db:"part"`
+	Text    string  `db:"text"`
+	Title   *string `db:"title"`
 }
 
 func (v Verse) HasTitle() bool {
@@ -51,8 +51,8 @@ var BookStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#6A7FDB"))
 
 type Book struct {
-	Name     string
-	Chapters int
+	Name     string `db:"name"`
+	Chapters int    `db:"chapters"`
 }
 
 func (b Book) String() string {

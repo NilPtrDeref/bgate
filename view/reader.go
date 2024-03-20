@@ -17,29 +17,27 @@ type Reader struct {
 	searcher search.Searcher
 	query    string // Only the initial query, should never be written to after intialization
 
-	verses      []model.Verse
-	translation string
-	wrap        bool
-	padding     int
-	lines       []string
-	scroll      int
-	maxscroll   int
-	vheight     int
-	vwidth      int
-	books       []model.Book
-	Error       error
+	verses    []model.Verse
+	wrap      bool
+	padding   int
+	lines     []string
+	scroll    int
+	maxscroll int
+	vheight   int
+	vwidth    int
+	books     []model.Book
+	Error     error
 }
 
-func NewReader(searcher search.Searcher, query, translation string, wrap bool, padding int) *Reader {
+func NewReader(searcher search.Searcher, query string, wrap bool, padding int) *Reader {
 	return &Reader{
-		searcher:    searcher,
-		query:       query,
-		translation: translation,
-		wrap:        wrap,
-		padding:     padding,
-		scroll:      0,
-		vheight:     20,
-		vwidth:      20,
+		searcher: searcher,
+		query:    query,
+		wrap:     wrap,
+		padding:  padding,
+		scroll:   0,
+		vheight:  20,
+		vwidth:   20,
 	}
 }
 
@@ -127,7 +125,7 @@ func (r *Reader) resize(width int) {
 }
 
 func (r *Reader) ChangePassage(query string) (err error) {
-	r.verses, err = r.searcher.Query(r.translation, query)
+	r.verses, err = r.searcher.Query(query)
 	if err != nil {
 		return err
 	}
@@ -175,7 +173,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if r.books == nil {
 				var err error
-				r.books, err = r.searcher.Booklist(r.translation)
+				r.books, err = r.searcher.Booklist()
 				if err != nil {
 					r.Error = err
 					return r, tea.Quit
@@ -213,7 +211,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if r.books == nil {
 				var err error
-				r.books, err = r.searcher.Booklist(r.translation)
+				r.books, err = r.searcher.Booklist()
 				if err != nil {
 					r.Error = err
 					return r, tea.Quit

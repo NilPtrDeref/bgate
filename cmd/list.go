@@ -21,10 +21,18 @@ var list = &cobra.Command{
 		translation := viper.GetString("translation")
 		padding := viper.GetInt("padding")
 
-		// TODO: Allow for local if one exists for translation
-		remote := search.NewRemote()
+		local, err := search.TranslationHasLocal(translation)
+		cobra.CheckErr(err)
 
-		books, err := remote.Booklist(translation)
+		var searcher search.Searcher
+		if local {
+			searcher, err = search.NewLocal(translation)
+			cobra.CheckErr(err)
+		} else {
+			searcher = search.NewRemote(translation)
+		}
+
+		books, err := searcher.Booklist()
 		cobra.CheckErr(err)
 
 		for _, book := range books {

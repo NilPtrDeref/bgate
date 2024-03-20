@@ -33,8 +33,18 @@ var root = &cobra.Command{
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
 
-		// TODO: Allow for local if one exists for translation
-		r := view.NewReader(search.NewRemote(), query, translation, wrap, padding)
+		local, err := search.TranslationHasLocal(translation)
+		cobra.CheckErr(err)
+
+		var searcher search.Searcher
+		if local {
+			searcher, err = search.NewLocal(translation)
+			cobra.CheckErr(err)
+		} else {
+			searcher = search.NewRemote(translation)
+		}
+
+		r := view.NewReader(searcher, query, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {

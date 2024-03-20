@@ -24,9 +24,9 @@ var download = &cobra.Command{
 		translation := viper.GetString("translation")
 		delay := viper.GetInt("delay")
 
-		remote := search.NewRemote()
+		remote := search.NewRemote(translation)
 
-		books, err := remote.Booklist(translation)
+		books, err := remote.Booklist()
 		cobra.CheckErr(err)
 		if len(books) == 0 {
 			cobra.CheckErr(fmt.Errorf("No books found for translation: %s", translation))
@@ -62,7 +62,7 @@ var download = &cobra.Command{
 			fmt.Printf("Downloading %s...\n", book.Name)
 
 			for chapter := range book.Chapters {
-				verses, err := remote.Query(translation, fmt.Sprintf("%s %d", book.Name, chapter+1))
+				verses, err := remote.Query(fmt.Sprintf("%s %d", book.Name, chapter+1))
 				cobra.CheckErr(err)
 
 				for _, verse := range verses {

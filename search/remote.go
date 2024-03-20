@@ -14,14 +14,15 @@ import (
 )
 
 type Remote struct {
-	// / URL format: https://www.biblegateway.com/passage/?search=Genesis+1&version=LSB
+	// URL format: https://www.biblegateway.com/passage/?search=Genesis+1&version=LSB
+	translation string
 }
 
-func NewRemote() *Remote {
-	return &Remote{}
+func NewRemote(translation string) *Remote {
+	return &Remote{translation}
 }
 
-func (r *Remote) Query(translation, query string) ([]model.Verse, error) {
+func (r *Remote) Query(query string) ([]model.Verse, error) {
 	base, err := url.Parse("https://www.biblegateway.com/passage/")
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (r *Remote) Query(translation, query string) ([]model.Verse, error) {
 
 	values := base.Query()
 	values.Set("search", query)
-	values.Set("version", translation)
+	values.Set("version", r.translation)
 	base.RawQuery = values.Encode()
 
 	request, err := http.NewRequest("GET", base.String(), nil)
@@ -133,7 +134,7 @@ func (r *Remote) Query(translation, query string) ([]model.Verse, error) {
 	return verses, nil
 }
 
-func (r *Remote) Booklist(translation string) ([]model.Book, error) {
+func (r *Remote) Booklist() ([]model.Book, error) {
 	var base = "https://www.biblegateway.com"
 	var booklist string
 	var books []model.Book
@@ -146,7 +147,7 @@ func (r *Remote) Booklist(translation string) ([]model.Book, error) {
 
 		values := base.Query()
 		values.Set("search", "Genesis 1")
-		values.Set("version", translation)
+		values.Set("version", r.translation)
 		base.RawQuery = values.Encode()
 
 		request, err := http.NewRequest("GET", base.String(), nil)
