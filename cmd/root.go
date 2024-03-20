@@ -33,14 +33,8 @@ var root = &cobra.Command{
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
 
-		verses, err := search.Query(translation, query)
-		cobra.CheckErr(err)
-
-		if len(verses) == 0 {
-			cobra.CheckErr(errors.New("No content found"))
-		}
-
-		r := view.NewReader(verses, translation, wrap, padding)
+		// TODO: Allow for local if one exists for translation
+		r := view.NewReader(search.NewRemote(), query, translation, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {
@@ -75,7 +69,7 @@ func Execute() {
 func init() {
 	var config string
 	root.PersistentFlags().StringVarP(&config, "config", "c", "~/.config/bgate/config.json", "Config file to use.")
-	root.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
+	root.Flags().StringP("translation", "t", "ESV", "The translation of the Bible to search for.")
 	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
 	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 	root.Flags().BoolP("wrap", "w", false, "Wrap verses, this will cause it to not start each verse on a new line.")

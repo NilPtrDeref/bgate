@@ -21,7 +21,10 @@ var list = &cobra.Command{
 		translation := viper.GetString("translation")
 		padding := viper.GetInt("padding")
 
-		books, err := search.Booklist(translation)
+		// TODO: Allow for local if one exists for translation
+		remote := search.NewRemote()
+
+		books, err := remote.Booklist(translation)
 		cobra.CheckErr(err)
 
 		for _, book := range books {
@@ -34,7 +37,7 @@ var list = &cobra.Command{
 
 func init() {
 	list.Flags().StringP("filter", "f", "", "Filter the list of books by name. (Case insensitive)")
-	list.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
+	list.Flags().StringP("translation", "t", "ESV", "The translation of the Bible to search for.")
 	list.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 	root.AddCommand(list)
 }

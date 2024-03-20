@@ -14,6 +14,9 @@ import (
 )
 
 type Reader struct {
+	searcher search.Searcher
+	query    string // Only the initial query, should never be written to after intialization
+
 	verses      []model.Verse
 	translation string
 	wrap        bool
@@ -27,9 +30,10 @@ type Reader struct {
 	Error       error
 }
 
-func NewReader(verses []model.Verse, translation string, wrap bool, padding int) *Reader {
+func NewReader(searcher search.Searcher, query, translation string, wrap bool, padding int) *Reader {
 	return &Reader{
-		verses:      verses,
+		searcher:    searcher,
+		query:       query,
 		translation: translation,
 		wrap:        wrap,
 		padding:     padding,
@@ -40,6 +44,11 @@ func NewReader(verses []model.Verse, translation string, wrap bool, padding int)
 }
 
 func (r *Reader) Init() tea.Cmd {
+	err := r.ChangePassage(r.query)
+	if err != nil {
+		r.Error = err
+		return tea.Quit
+	}
 	return nil
 }
 
@@ -118,7 +127,7 @@ func (r *Reader) resize(width int) {
 }
 
 func (r *Reader) ChangePassage(query string) (err error) {
-	r.verses, err = search.Query(r.translation, query)
+	r.verses, err = r.searcher.Query(r.translation, query)
 	if err != nil {
 		return err
 	}
@@ -166,7 +175,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if r.books == nil {
 				var err error
-				r.books, err = search.Booklist(r.translation)
+				r.books, err = r.searcher.Booklist(r.translation)
 				if err != nil {
 					r.Error = err
 					return r, tea.Quit
@@ -204,7 +213,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if r.books == nil {
 				var err error
-				r.books, err = search.Booklist(r.translation)
+				r.books, err = r.searcher.Booklist(r.translation)
 				if err != nil {
 					r.Error = err
 					return r, tea.Quit
