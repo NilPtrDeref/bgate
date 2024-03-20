@@ -1,33 +1,41 @@
 package view
 
 import (
+	"errors"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/woodywood117/bgate/model"
+	"github.com/woodywood117/bgate/search"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type Reader struct {
-	verses    []model.Verse
-	wrap      bool
-	padding   int
-	lines     []string
-	scroll    int
-	maxscroll int
-	vheight   int
-	vwidth    int
+	verses      []model.Verse
+	translation string
+	wrap        bool
+	padding     int
+	lines       []string
+	scroll      int
+	maxscroll   int
+	vheight     int
+	vwidth      int
+	books       []model.Book
+	Error       error
 }
 
-func NewReader(verses []model.Verse, wrap bool, padding int) *Reader {
+func NewReader(verses []model.Verse, translation string, wrap bool, padding int) *Reader {
 	return &Reader{
-		verses:  verses,
-		wrap:    wrap,
-		padding: padding,
-		scroll:  0,
-		vheight: 20,
-		vwidth:  20,
+		verses:      verses,
+		translation: translation,
+		wrap:        wrap,
+		padding:     padding,
+		scroll:      0,
+		vheight:     20,
+		vwidth:      20,
 	}
 }
 
@@ -103,6 +111,20 @@ func (r *Reader) resize(width int) {
 	r.lines = lines
 }
 
+func (r *Reader) ChangePassage(query string) (err error) {
+	r.verses, err = search.Query(r.translation, query)
+	if err != nil {
+		return err
+	}
+
+	if len(r.verses) == 0 {
+		return errors.New("No verses found")
+	}
+
+	r.resize(r.vwidth - 2*r.padding)
+	return nil
+}
+
 func (r *Reader) SetWindowSize(width, height int) {
 	r.vheight = height
 
@@ -131,6 +153,91 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			r.scroll = 0
 		case "G":
 			r.scroll = r.maxscroll
+		case "p":
+			// Previous chapter
+			first := r.verses[0]
+			chapter, err := strconv.Atoi(first.Chapter)
+			if err != nil {
+				r.Error = err
+				return r, tea.Quit
+			}
+
+			if r.books == nil {
+				var err error
+				r.books, err = search.Booklist(r.translation)
+				if err != nil {
+					r.Error = err
+					return r, tea.Quit
+				}
+			}
+
+			// Handle being beginning of book
+			book := first.Book
+			if chapter == 1 {
+				index := slices.IndexFunc(r.books, func(b model.Book) bool {
+					return b.Name == first.Book
+				})
+				if index == -1 {
+					r.Error = errors.New("Book not found")
+					return r, tea.Quit
+				} else if index == 0 {
+					book = r.books[len(r.books)-1].Name
+				} else {
+					book = r.books[index-1].Name
+					chapter = r.books[index-1].Chapters + 1
+				}
+			}
+			query := book + " " + strconv.Itoa(chapter-1)
+			err = r.ChangePassage(query)
+			if err != nil {
+				r.Error = err
+				return r, tea.Quit
+			}
+			return r, tea.SetWindowTitle(query)
+		case "n":
+			// Next chapter
+			last := r.verses[len(r.verses)-1]
+			chapter, err := strconv.Atoi(last.Chapter)
+			if err != nil {
+				r.Error = err
+				return r, tea.Quit
+			}
+
+			if r.books == nil {
+				var err error
+				r.books, err = search.Booklist(r.translation)
+				if err != nil {
+					r.Error = err
+					return r, tea.Quit
+				}
+			}
+
+			index := slices.IndexFunc(r.books, func(b model.Book) bool {
+				return b.Name == last.Book
+			})
+			if index == -1 {
+				r.Error = errors.New("Book not found")
+				return r, tea.Quit
+			}
+
+			// Handle being end of book
+			book := last.Book
+			if chapter == r.books[index].Chapters {
+				if index == len(r.books)-1 {
+					book = r.books[0].Name
+					chapter = 0
+				} else {
+					book = r.books[index+1].Name
+					chapter = 0
+				}
+			}
+			query := book + " " + strconv.Itoa(chapter+1)
+			err = r.ChangePassage(query)
+			if err != nil {
+				r.Error = err
+				return r, tea.Quit
+			}
+			return r, tea.SetWindowTitle(query)
 		}
 	case tea.MouseMsg:
 		switch msg.String() {

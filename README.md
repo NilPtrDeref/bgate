@@ -28,11 +28,20 @@ To install, you must have golang installed on your machine. You can just run:
 go install github.com/woodywood117/bgate@latest
 ```
 
+## Examples
+An example would be:
+```
+bgate -t LSB -i 1cor1
+```
+which would pull up 1 Corinthians 1 in an interactive session.
+
 ## Interactive Controls
 * `j` - Down
 * `k` - Up
 * `g` - Top
 * `G` - Bottom
+* `p` - Previous Chapter (starting from first verse on screen)
+* `n` - Next Chapter (starting from last verse on screen)
 * `q/esc/ctrl+c` - Quit
 
 ## Config

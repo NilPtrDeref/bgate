@@ -40,7 +40,7 @@ var root = &cobra.Command{
 			cobra.CheckErr(errors.New("No content found"))
 		}
 
-		r := view.NewReader(verses, wrap, padding)
+		r := view.NewReader(verses, translation, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {
@@ -53,8 +53,13 @@ var root = &cobra.Command{
 		}
 
 		p := tea.NewProgram(r, tea.WithMouseAllMotion())
+		p.SetWindowTitle(query)
 		if _, err := p.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
+			os.Exit(1)
+		}
+		if r.Error != nil {
+			fmt.Fprintf(os.Stderr, "Error running program: %v\n", r.Error)
 			os.Exit(1)
 		}
 	},
