@@ -7,11 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/woodywood117/bgate/model"
 	"github.com/woodywood117/bgate/search"
 	"github.com/woodywood117/bgate/view"
 
-	"github.com/PuerkitoBio/goquery"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,76 +33,26 @@ var root = &cobra.Command{
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
 
-		document, err := search.Passage(translation, query)
+		content, err := search.Passage(translation, query)
 		cobra.CheckErr(err)
-
-		document.Find(".crossreference").Remove()
-		document.Find(".footnote").Remove()
-
-		content := []model.Content{}
-		document.Find(".passage-content").Each(func(pi int, passage *goquery.Selection) {
-			passage.Find(".text").Each(func(li int, line *goquery.Selection) {
-				if strings.HasPrefix(line.Parent().Nodes[0].Data, "h") {
-					content = append(content, model.Content{
-						Type:    model.Section,
-						Content: line.Text(),
-					})
-					return
-				}
-
-				chapter := line.Find(".chapternum")
-				if chapter.Length() > 0 {
-					c := model.Content{
-						Type:   model.Chapter,
-						Number: chapter.Text(),
-					}
-					chapter.Remove()
-					content = append(content, c)
-
-					c.Type = model.Verse
-					c.Number = "1 "
-					c.Content = line.Text()
-					content = append(content, c)
-					return
-				}
-
-				verse := line.Find(".versenum")
-				if verse.Length() > 0 {
-					c := model.Content{
-						Type:   model.Verse,
-						Number: verse.Text(),
-					}
-					verse.Remove()
-
-					c.Content = line.Text()
-					content = append(content, c)
-					return
-				}
-
-				content = append(content, model.Content{
-					Type:    model.VerseCont,
-					Content: line.Text(),
-				})
-			})
-		})
 
 		if len(content) == 0 {
 			cobra.CheckErr(errors.New("No content found"))
 		}
 
-		m := view.New(content, wrap, padding)
+		r := view.NewReader(content, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {
 				panic(err)
 			}
-			m.SetWindowSize(width, math.MaxInt32)
-			v := m.View()
+			r.SetWindowSize(width, math.MaxInt32)
+			v := r.View()
 			fmt.Print(v)
 			return
 		}
 
-		p := tea.NewProgram(m)
+		p := tea.NewProgram(r)
 		if _, err := p.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 			os.Exit(1)

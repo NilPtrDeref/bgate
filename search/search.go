@@ -1,13 +1,16 @@
 package search
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/woodywood117/bgate/model"
 )
 
-func Passage(translation, query string) (*goquery.Document, error) {
+func Passage(translation, query string) ([]model.Content, error) {
 	// URL format: https://www.biblegateway.com/passage/?search=Genesis+1&version=LSB
 	base, err := url.Parse("https://www.biblegateway.com/passage/")
 	if err != nil {
@@ -30,12 +33,64 @@ func Passage(translation, query string) (*goquery.Document, error) {
 	}
 	defer response.Body.Close()
 
-	// TODO: Check for status code
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New("unable to retrieve passage")
+	}
 
 	document, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return document, nil
+	document.Find(".crossreference").Remove()
+	document.Find(".footnote").Remove()
+
+	content := []model.Content{}
+	document.Find(".passage-content").Each(func(pi int, passage *goquery.Selection) {
+		passage.Find(".text").Each(func(li int, line *goquery.Selection) {
+			if strings.HasPrefix(line.Parent().Nodes[0].Data, "h") {
+				content = append(content, model.Content{
+					Type:    model.Section,
+					Content: line.Text(),
+				})
+				return
+			}
+
+			chapter := line.Find(".chapternum")
+			if chapter.Length() > 0 {
+				c := model.Content{
+					Type:   model.Chapter,
+					Number: chapter.Text(),
+				}
+				chapter.Remove()
+				content = append(content, c)
+
+				c.Type = model.Verse
+				c.Number = "1 "
+				c.Content = line.Text()
+				content = append(content, c)
+				return
+			}
+
+			verse := line.Find(".versenum")
+			if verse.Length() > 0 {
+				c := model.Content{
+					Type:   model.Verse,
+					Number: verse.Text(),
+				}
+				verse.Remove()
+
+				c.Content = line.Text()
+				content = append(content, c)
+				return
+			}
+
+			content = append(content, model.Content{
+				Type:    model.VerseCont,
+				Content: line.Text(),
+			})
+		})
+	})
+
+	return content, nil
 }
