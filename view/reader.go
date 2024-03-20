@@ -87,14 +87,20 @@ func (r *Reader) resize(width int) {
 			lines = append(lines, current.TitleString())
 		}
 
-		if current.Number == "1" {
+		if current.Number == 1 && current.Part == 1 {
 			lines = append(lines, current.ChapterString())
 		}
 
-		line := current.NumberString() + current.Text
-		if r.wrap {
+		var line string
+		if current.Part > 1 {
+			line = "    " + current.Text
+		} else {
+			line = current.NumberString() + current.Text
+		}
+
+		if r.wrap && current.Part == 1 {
 			for {
-				if i+1 >= len(r.verses) || r.verses[i+1].HasTitle() {
+				if i+1 >= len(r.verses) || r.verses[i+1].HasTitle() || r.verses[i+1].Part > 1 {
 					break
 				}
 
@@ -156,11 +162,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "p":
 			// Previous chapter
 			first := r.verses[0]
-			chapter, err := strconv.Atoi(first.Chapter)
-			if err != nil {
-				r.Error = err
-				return r, tea.Quit
-			}
+			chapter := first.Chapter
 
 			if r.books == nil {
 				var err error
@@ -189,7 +191,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			query := book + " " + strconv.Itoa(chapter-1)
-			err = r.ChangePassage(query)
+			err := r.ChangePassage(query)
 			if err != nil {
 				r.Error = err
 				return r, tea.Quit
@@ -198,11 +200,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "n":
 			// Next chapter
 			last := r.verses[len(r.verses)-1]
-			chapter, err := strconv.Atoi(last.Chapter)
-			if err != nil {
-				r.Error = err
-				return r, tea.Quit
-			}
+			chapter := last.Chapter
 
 			if r.books == nil {
 				var err error
@@ -233,7 +231,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			query := book + " " + strconv.Itoa(chapter+1)
-			err = r.ChangePassage(query)
+			err := r.ChangePassage(query)
 			if err != nil {
 				r.Error = err
 				return r, tea.Quit

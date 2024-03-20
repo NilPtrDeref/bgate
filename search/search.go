@@ -60,6 +60,7 @@ func Query(translation, query string) ([]model.Verse, error) {
 		}
 
 		var title *string
+		var part int
 		passage.Find(".text").Each(func(li int, line *goquery.Selection) {
 			// Store title for the next verse
 			if strings.HasPrefix(line.Parent().Nodes[0].Data, "h") {
@@ -86,16 +87,37 @@ func Query(translation, query string) ([]model.Verse, error) {
 				os.Exit(1)
 			}
 
+			cnum, err := strconv.Atoi(csplit[1])
+			if err != nil {
+				fmt.Println("Failed to parse chapter number:", err)
+				os.Exit(1)
+			}
+			vnum, err := strconv.Atoi(csplit[2])
+			if err != nil {
+				fmt.Println("Failed to parse verse number:", err)
+				os.Exit(1)
+			}
+
 			if line.Find(".versenum").Remove().Length() > 0 || line.Find(".chapternum").Remove().Length() > 0 {
 				verses = append(verses, model.Verse{
 					Book:    book,
-					Chapter: csplit[1],
-					Number:  csplit[2],
+					Chapter: cnum,
+					Number:  vnum,
+					Part:    1,
 					Text:    line.Text(),
 					Title:   title,
 				})
+				part = 1
 			} else {
-				verses[len(verses)-1].Text += " " + line.Text()
+				verses = append(verses, model.Verse{
+					Book:    book,
+					Chapter: cnum,
+					Number:  vnum,
+					Part:    part + 1,
+					Text:    line.Text(),
+					Title:   title,
+				})
+				part++
 			}
 
 			title = nil

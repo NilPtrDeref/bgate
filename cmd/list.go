@@ -11,7 +11,7 @@ import (
 
 var list = &cobra.Command{
 	Use:   "list",
-	Short: "List all books of the Bible and how many chapters they have.",
+	Short: "List all books of the Bible and how many chapters they have",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("translation", cmd.Flag("translation"))
 		viper.BindPFlag("padding", cmd.Flag("padding"))

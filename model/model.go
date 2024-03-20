@@ -21,8 +21,9 @@ var NumberStyle = lipgloss.NewStyle().
 
 type Verse struct {
 	Book    string
-	Chapter string
-	Number  string
+	Chapter int
+	Number  int
+	Part    int
 	Text    string
 	Title   *string
 }
@@ -36,11 +37,13 @@ func (v Verse) TitleString() string {
 }
 
 func (v Verse) ChapterString() string {
-	return ChapterStyle.Render(" " + v.Chapter + " ")
+	text := fmt.Sprintf(" %d ", v.Chapter)
+	return ChapterStyle.Render(text)
 }
 
 func (v Verse) NumberString() string {
-	return NumberStyle.Render(v.Number + " ")
+	text := fmt.Sprintf("%d ", v.Number)
+	return NumberStyle.Render(text)
 }
 
 var BookStyle = lipgloss.NewStyle().
