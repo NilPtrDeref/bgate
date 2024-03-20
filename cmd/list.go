@@ -5,86 +5,28 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/woodywood117/bgate/search"
 )
-
-var books = map[string]int{
-	"Genesis":         50,
-	"Exodus":          40,
-	"Leviticus":       27,
-	"Numbers":         36,
-	"Deuteronomy":     34,
-	"Joshua":          24,
-	"Judges":          21,
-	"Ruth":            4,
-	"1 Samuel":        31,
-	"2 Samuel":        24,
-	"1 Kings":         22,
-	"2 Kings":         25,
-	"1 Chronicles":    29,
-	"2 Chronicles":    36,
-	"Ezra":            10,
-	"Nehemiah":        13,
-	"Esther":          10,
-	"Job":             42,
-	"Psalm":           150,
-	"Proverbs":        31,
-	"Ecclesiastes":    12,
-	"Song of Songs":   8,
-	"Isaiah":          66,
-	"Jeremiah":        52,
-	"Lamentations":    5,
-	"Ezekiel":         48,
-	"Daniel":          12,
-	"Hosea":           14,
-	"Joel":            3,
-	"Amos":            9,
-	"Obadiah":         1,
-	"Jonah":           4,
-	"Micah":           7,
-	"Nahum":           3,
-	"Habakkuk":        3,
-	"Zephaniah":       3,
-	"Haggai":          2,
-	"Zechariah":       14,
-	"Malachi":         4,
-	"Matthew":         28,
-	"Mark":            16,
-	"Luke":            24,
-	"John":            21,
-	"Acts":            28,
-	"Romans":          16,
-	"1 Corinthians":   16,
-	"2 Corinthians":   13,
-	"Galatians":       6,
-	"Ephesians":       6,
-	"Philippians":     4,
-	"Colossians":      4,
-	"1 Thessalonians": 5,
-	"2 Thessalonians": 3,
-	"1 Timothy":       6,
-	"2 Timothy":       4,
-	"Titus":           3,
-	"Philemon":        1,
-	"Hebrews":         13,
-	"James":           5,
-	"1 Peter":         5,
-	"2 Peter":         3,
-	"1 John":          5,
-	"2 John":          1,
-	"3 John":          1,
-	"Jude":            1,
-	"Revelation":      22,
-}
 
 var list = &cobra.Command{
 	Use:   "list",
 	Short: "List all books of the Bible and how many chapters they have.",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("translation", cmd.Flag("translation"))
+		viper.BindPFlag("padding", cmd.Flag("padding"))
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		filter, _ := cmd.Flags().GetString("filter")
+		translation := viper.GetString("translation")
+		padding := viper.GetInt("padding")
 
-		for name, chapters := range books {
-			if strings.Contains(strings.ToLower(name), strings.ToLower(filter)) {
-				fmt.Printf("%s: %d\n", name, chapters)
+		books, err := search.Booklist(translation)
+		cobra.CheckErr(err)
+
+		for _, book := range books {
+			if strings.Contains(strings.ToLower(book.Name), strings.ToLower(filter)) {
+				fmt.Printf("%s%s\n", strings.Repeat(" ", padding), book.String())
 			}
 		}
 	},
@@ -92,5 +34,7 @@ var list = &cobra.Command{
 
 func init() {
 	list.Flags().StringP("filter", "f", "", "Filter the list of books by name. (Case insensitive)")
+	list.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
+	list.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 	root.AddCommand(list)
 }

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -45,4 +47,17 @@ func (c Content) String() string {
 	default:
 		return ""
 	}
+}
+
+var BookStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#6A7FDB"))
+
+type Book struct {
+	Name     string
+	Chapters int
+}
+
+func (b Book) String() string {
+	return fmt.Sprintf("%s (%d)", BookStyle.Render(b.Name), b.Chapters)
 }

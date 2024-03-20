@@ -69,7 +69,7 @@ func Execute() {
 
 func init() {
 	var config string
-	root.Flags().StringVarP(&config, "config", "c", "~/.config/bgate/config.json", "Config file to use.")
+	root.PersistentFlags().StringVarP(&config, "config", "c", "~/.config/bgate/config.json", "Config file to use.")
 	root.Flags().StringP("translation", "t", "", "The translation of the Bible to search for.")
 	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
 	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
