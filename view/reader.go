@@ -182,6 +182,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return r, tea.Quit
 				} else if index == 0 {
 					book = r.books[len(r.books)-1].Name
+					chapter = r.books[len(r.books)-1].Chapters + 1
 				} else {
 					book = r.books[index-1].Name
 					chapter = r.books[index-1].Chapters + 1
