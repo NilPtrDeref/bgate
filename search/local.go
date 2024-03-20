@@ -46,28 +46,42 @@ func NewLocal(translation string) (*Local, error) {
 	return &Local{db}, nil
 }
 
-func parsequery(query string) (string, error) {
-	return "book = 'Genesis' and chapter = 1", nil
+func parsebook(query string) (book, remainder string) {
+	for _, ref := range references {
+		if strings.HasPrefix(query, ref.match) {
+			return ref.book, query[len(ref.match):]
+		}
+	}
+	return "", query
 }
 
 // TODO: Implement
+func parsequery(query string) (string, error) {
+	query = strings.TrimSpace(query)
+	query = strings.ToLower(query)
+	query = strings.Join(strings.Fields(query), "")
+
+	book, remainder := parsebook(query)
+	if book == "" {
+		return "", errors.New("Invalid book")
+	}
+
+	output := fmt.Sprintf("book like '%s%%' and chapter = %s", book, remainder)
+
+	return output, nil
+}
+
 func (l *Local) Query(query string) ([]model.Verse, error) {
-	queries := strings.Split(query, ",")
+	query, err := parsequery(query)
+	if err != nil {
+		return nil, err
+	}
+	query = fmt.Sprintf("SELECT book, chapter, number, part, text, title FROM verses WHERE %s", query)
+
 	var verses []model.Verse
-
-	for _, query := range queries {
-		query, err := parsequery(query)
-		if err != nil {
-			return nil, err
-		}
-		query = fmt.Sprintf("SELECT book, chapter, number, part, text, title FROM verses WHERE %s", query)
-
-		var inner []model.Verse
-		err = l.db.Select(&inner, query)
-		if err != nil {
-			return nil, err
-		}
-		verses = append(verses, inner...)
+	err = l.db.Select(&verses, query)
+	if err != nil {
+		return nil, err
 	}
 
 	return verses, nil
