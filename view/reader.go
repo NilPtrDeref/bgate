@@ -132,6 +132,17 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "G":
 			r.scroll = r.maxscroll
 		}
+	case tea.MouseMsg:
+		switch msg.String() {
+		case "wheel down":
+			if r.scroll < r.maxscroll {
+				r.scroll++
+			}
+		case "wheel up":
+			if r.scroll > 0 {
+				r.scroll--
+			}
+		}
 	case tea.WindowSizeMsg:
 		r.SetWindowSize(msg.Width, msg.Height)
 	}

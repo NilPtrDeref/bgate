@@ -52,7 +52,7 @@ var root = &cobra.Command{
 			return
 		}
 
-		p := tea.NewProgram(r)
+		p := tea.NewProgram(r, tea.WithMouseAllMotion())
 		if _, err := p.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 			os.Exit(1)
