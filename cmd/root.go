@@ -25,6 +25,8 @@ var root = &cobra.Command{
 		viper.BindPFlag("interactive", cmd.Flag("interactive"))
 		viper.BindPFlag("padding", cmd.Flag("padding"))
 		viper.BindPFlag("wrap", cmd.Flag("wrap"))
+		viper.BindPFlag("force-local", cmd.Flag("force-local"))
+		viper.BindPFlag("force-remote", cmd.Flag("force-remote"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
@@ -36,8 +38,12 @@ var root = &cobra.Command{
 		local, err := search.TranslationHasLocal(translation)
 		cobra.CheckErr(err)
 
+		if !local && viper.GetBool("force-local") {
+			cobra.CheckErr(errors.New("No local copy of translation found. Please use download command for requested translation."))
+		}
+
 		var searcher search.Searcher
-		if local {
+		if local && !viper.GetBool("force-remote") {
 			searcher, err = search.NewLocal(translation)
 			cobra.CheckErr(err)
 		} else {
@@ -83,6 +89,8 @@ func init() {
 	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
 	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 	root.Flags().BoolP("wrap", "w", false, "Wrap verses, this will cause it to not start each verse on a new line.")
+	root.Flags().Bool("force-local", false, "Force the program to crash if there isn't a local copy of the translation you're trying to read.")
+	root.Flags().Bool("force-remote", false, "Force the program to use the remote searcher even if there is a local copy of the translation.")
 
 	home, err := os.UserHomeDir()
 	if err != nil {

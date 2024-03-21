@@ -14,6 +14,8 @@ Available Commands:
 
 Flags:
   -c, --config string        Config file to use. (default "~/.config/bgate/config.json")
+      --force-local          Force the program to crash if there isn't a local copy of the translation you're trying to read.
+      --force-remote         Force the program to use the remote searcher even if there is a local copy of the translation.
   -h, --help                 help for bgate
   -i, --interactive          Interactive view, allows you to scroll using j/up and k/down.
   -p, --padding int          Horizontal padding in character count.
