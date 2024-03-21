@@ -144,7 +144,7 @@ func (r *Reader) SetWindowSize(width, height int) {
 	r.vwidth = width
 	r.resize(width - 2*r.padding)
 
-	r.maxscroll = max(0, (len(r.lines)-r.vheight)+1)
+	r.maxscroll = max(0, len(r.lines)-1)
 	r.scroll = min(r.scroll, r.maxscroll)
 }
 
@@ -165,7 +165,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "g":
 			r.scroll = 0
 		case "G":
-			r.scroll = r.maxscroll
+			r.scroll = max(0, (r.maxscroll-r.vheight)+2)
 		case "p":
 			// Previous chapter
 			first := r.verses[0]
