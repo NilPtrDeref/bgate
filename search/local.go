@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/woodywood117/bgate/model"
@@ -44,31 +43,6 @@ func NewLocal(translation string) (*Local, error) {
 		return nil, err
 	}
 	return &Local{db}, nil
-}
-
-func parsebook(query string) (book, remainder string) {
-	for _, ref := range references {
-		if strings.HasPrefix(query, ref.match) {
-			return ref.book, query[len(ref.match):]
-		}
-	}
-	return "", query
-}
-
-// TODO: Implement
-func parsequery(query string) (string, error) {
-	query = strings.TrimSpace(query)
-	query = strings.ToLower(query)
-	query = strings.Join(strings.Fields(query), "")
-
-	book, remainder := parsebook(query)
-	if book == "" {
-		return "", errors.New("Invalid book")
-	}
-
-	output := fmt.Sprintf("book like '%s%%' and chapter = %s", book, remainder)
-
-	return output, nil
 }
 
 func (l *Local) Query(query string) ([]model.Verse, error) {
