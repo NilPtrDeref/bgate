@@ -54,3 +54,6 @@ Config values use the same name as the flag. Below is my personal config.
 	"padding": 60
 }
 ```
+
+## Note
+Currently, the local querying is not as feature rich as remote querying.
