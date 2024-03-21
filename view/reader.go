@@ -145,7 +145,8 @@ func (r *Reader) SetWindowSize(width, height int) {
 	r.resize(width - 2*r.padding)
 
 	r.maxscroll = max(0, len(r.lines)-1)
-	r.scroll = min(r.scroll, r.maxscroll)
+	tempmax := max(0, (r.maxscroll-r.vheight)+2)
+	r.scroll = min(r.scroll, tempmax)
 }
 
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
