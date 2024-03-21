@@ -135,29 +135,38 @@ func parsepart(tokens []token) (string, []token, error) {
 		tokens = tokens[1:]
 		vrange := fmt.Sprintf("id >= (select id from verses where %s order by id limit 1)", part)
 
-		var otherbook string
-		otherbook, tokens, err = parsebook(tokens)
+		var newbook string
+		newbook, tokens, err = parsebook(tokens)
 		if err != nil {
-			otherbook = book
+			newbook = book
 		}
 
-		chapter, tokens, err = parsechapter(tokens)
+		var newchapter string
+		newchapter, tokens, err = parsechapter(tokens)
 		if err != nil {
 			return "", tokens, errors.Join(errors.New("failed in second chapter parse"), err)
 		}
-		part = fmt.Sprintf("book = '%s' and chapter = %s", otherbook, chapter)
 
-		verse, tokens, err = parseverse(tokens)
+		var newverse string
+		newverse, tokens, err = parseverse(tokens)
 		if err != nil {
 			return "", tokens, err
 		}
-		if verse != "" {
-			part += fmt.Sprintf(" and number = %s", verse)
-			vrange += fmt.Sprintf(" and id <= (select id from verses where %s order by id limit 1)", part)
+
+		if verse != "" && newverse != "" {
+			// Range across chapters possibly
+			part = fmt.Sprintf("book = '%s' and chapter = %s and number = %s", newbook, newchapter, newverse)
+		} else if verse != "" && newverse == "" {
+			// Continuation of chapter verse->verse
+			part = fmt.Sprintf("book = '%s' and chapter = %s and number = %s", newbook, chapter, newchapter)
 		} else {
-			vrange += fmt.Sprintf(" and id <= (select id from verses where %s order by id desc limit 1)", part)
+			part = fmt.Sprintf("book = '%s' and chapter = %s", newbook, newchapter)
+			if newverse != "" {
+				part += fmt.Sprintf(" and number = %s", newverse)
+			}
 		}
 
+		vrange += fmt.Sprintf(" and id <= (select id from verses where %s order by id desc limit 1)", part)
 		return vrange, tokens, nil
 	}
 
