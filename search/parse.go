@@ -13,8 +13,7 @@ var (
 	token_number tokentype = 0
 	token_word   tokentype = 1
 	token_colon  tokentype = 2
-	// TODO:
-	// token_dash   tokentype = 3
+	token_dash   tokentype = 3
 	// TODO:
 	// token_comma tokentype = 4
 	// TODO:
@@ -48,6 +47,8 @@ func tokenize(query string) ([]token, error) {
 			tokens = append(tokens, token{_type: token_word, value: string(word)})
 		} else if runes[i] == ':' {
 			tokens = append(tokens, token{_type: token_colon, value: ":"})
+		} else if runes[i] == '-' {
+			tokens = append(tokens, token{_type: token_dash, value: "-"})
 		} else {
 			return nil, errors.New("Invalid character when tokenizing query")
 		}
@@ -72,7 +73,7 @@ func parsebook(tokens []token) (string, []token, error) {
 		book = tokens[0].value
 
 		if !(len(tokens) > 1 && tokens[1]._type == token_word) {
-			return book, tokens[1:], errors.New("invalid token in book parsing")
+			return book, tokens, errors.New("invalid token in book parsing")
 		}
 
 		book += tokens[1].value
@@ -99,7 +100,7 @@ func parseverse(tokens []token) (string, []token, error) {
 		return "", tokens, nil
 	}
 	if tokens[0]._type != token_colon {
-		return "", tokens, errors.New("Invalid verse")
+		return "", tokens, nil
 	}
 	if len(tokens) == 1 {
 		return "", tokens, errors.New("No verse found")
@@ -108,6 +109,59 @@ func parseverse(tokens []token) (string, []token, error) {
 		return "", tokens, errors.New("Invalid verse")
 	}
 	return tokens[1].value, tokens[2:], nil
+}
+
+func parsepart(tokens []token) (string, []token, error) {
+	book, tokens, err := parsebook(tokens)
+	if err != nil {
+		return "", tokens, err
+	}
+
+	chapter, tokens, err := parsechapter(tokens)
+	if err != nil {
+		return "", tokens, err
+	}
+	part := fmt.Sprintf("book = '%s' and chapter = %s", book, chapter)
+
+	verse, tokens, err := parseverse(tokens)
+	if err != nil {
+		return "", tokens, err
+	}
+	if verse != "" {
+		part += fmt.Sprintf(" and number = %s", verse)
+	}
+
+	if len(tokens) > 0 && tokens[0]._type == token_dash {
+		tokens = tokens[1:]
+		vrange := fmt.Sprintf("id >= (select id from verses where %s order by id limit 1)", part)
+
+		var otherbook string
+		otherbook, tokens, err = parsebook(tokens)
+		if err != nil {
+			otherbook = book
+		}
+
+		chapter, tokens, err = parsechapter(tokens)
+		if err != nil {
+			return "", tokens, errors.Join(errors.New("failed in second chapter parse"), err)
+		}
+		part = fmt.Sprintf("book = '%s' and chapter = %s", otherbook, chapter)
+
+		verse, tokens, err = parseverse(tokens)
+		if err != nil {
+			return "", tokens, err
+		}
+		if verse != "" {
+			part += fmt.Sprintf(" and number = %s", verse)
+			vrange += fmt.Sprintf(" and id <= (select id from verses where %s order by id limit 1)", part)
+		} else {
+			vrange += fmt.Sprintf(" and id <= (select id from verses where %s order by id desc limit 1)", part)
+		}
+
+		return vrange, tokens, nil
+	}
+
+	return part, tokens, nil
 }
 
 func parsequery(query string) (string, error) {
@@ -119,25 +173,10 @@ func parsequery(query string) (string, error) {
 		return "", err
 	}
 
-	book, tokens, err := parsebook(tokens)
+	part, tokens, err := parsepart(tokens)
 	if err != nil {
 		return "", err
 	}
 
-	chapter, tokens, err := parsechapter(tokens)
-	if err != nil {
-		return "", err
-	}
-
-	verse, tokens, err := parseverse(tokens)
-	if err != nil {
-		return "", err
-	}
-
-	output := fmt.Sprintf("book like '%s%%' and chapter = %s", book, chapter)
-	if verse != "" {
-		output += fmt.Sprintf(" and number = %s", verse)
-	}
-
-	return output, nil
+	return part, nil
 }
