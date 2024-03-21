@@ -37,7 +37,7 @@ func (v Verse) TitleString() string {
 }
 
 func (v Verse) ChapterString() string {
-	text := fmt.Sprintf(" %d ", v.Chapter)
+	text := fmt.Sprintf(" %s: %d ", v.Book, v.Chapter)
 	return ChapterStyle.Render(text)
 }
 

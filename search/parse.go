@@ -34,7 +34,7 @@ func tokenize(query string) ([]token, error) {
 		} else if unicode.IsDigit(runes[i]) {
 			num := []rune{runes[i]}
 			for i+1 < len(runes) && unicode.IsDigit(runes[i+1]) {
-				num = append(num, runes[i])
+				num = append(num, runes[i+1])
 				i++
 			}
 			tokens = append(tokens, token{_type: token_number, value: string(num)})
