@@ -26,7 +26,9 @@ type Reader struct {
 	vheight   int
 	vwidth    int
 	books     []model.Book
-	Error     error
+
+	Error error
+	quit  bool
 }
 
 func NewReader(searcher search.Searcher, query string, wrap bool, padding int) *Reader {
@@ -45,6 +47,7 @@ func (r *Reader) Init() tea.Cmd {
 	err := r.ChangePassage(r.query)
 	if err != nil {
 		r.Error = err
+		r.quit = true
 		return tea.Quit
 	}
 	return nil
@@ -153,6 +156,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc", "q", "ctrl+c":
+			r.quit = true
 			return r, tea.Quit
 		case "j", "down":
 			if r.scroll < r.maxscroll {
@@ -176,6 +180,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.books, err = r.searcher.Booklist()
 				if err != nil {
 					r.Error = err
+					r.quit = true
 					return r, tea.Quit
 				}
 			}
@@ -188,6 +193,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 				if index == -1 {
 					r.Error = errors.New("Book not found")
+					r.quit = true
 					return r, tea.Quit
 				} else if index == 0 {
 					book = r.books[len(r.books)-1].Name
@@ -201,6 +207,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err := r.ChangePassage(query)
 			if err != nil {
 				r.Error = err
+				r.quit = true
 				return r, tea.Quit
 			}
 			return r, tea.SetWindowTitle(query)
@@ -214,6 +221,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.books, err = r.searcher.Booklist()
 				if err != nil {
 					r.Error = err
+					r.quit = true
 					return r, tea.Quit
 				}
 			}
@@ -223,6 +231,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 			if index == -1 {
 				r.Error = errors.New("Book not found")
+				r.quit = true
 				return r, tea.Quit
 			}
 
@@ -241,6 +250,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err := r.ChangePassage(query)
 			if err != nil {
 				r.Error = err
+				r.quit = true
 				return r, tea.Quit
 			}
 			return r, tea.SetWindowTitle(query)
@@ -263,6 +273,10 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (r *Reader) View() string {
+	if r.quit {
+		return ""
+	}
+
 	var view strings.Builder
 
 	lpad := strings.Repeat(" ", r.padding)
