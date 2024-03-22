@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/woodywood117/bgate/model"
 	"github.com/woodywood117/bgate/search"
@@ -13,20 +14,31 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var SearchStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347"))
+
+type reader_state int
+
+const (
+	reading reader_state = iota
+	searching
+)
+
 type Reader struct {
 	searcher search.Searcher
 	query    string // Only the initial query, should never be written to after intialization
 
-	verses    []model.Verse
-	wrap      bool
-	padding   int
-	lines     []string
-	scroll    int
-	maxscroll int
-	vheight   int
-	vwidth    int
-	books     []model.Book
+	verses       []model.Verse
+	wrap         bool
+	padding      int
+	lines        []string
+	scroll       int
+	maxscroll    int
+	vheight      int
+	vwidth       int
+	books        []model.Book
+	searchbuffer string
 
+	state reader_state
 	Error error
 	quit  bool
 }
@@ -155,112 +167,143 @@ func (r *Reader) SetWindowSize(width, height int) {
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc", "q", "ctrl+c":
-			r.quit = true
-			return r, tea.Quit
-		case "j", "down":
-			if r.scroll < r.maxscroll {
-				r.scroll++
-			}
-		case "k", "up":
-			if r.scroll > 0 {
-				r.scroll--
-			}
-		case "g":
-			r.scroll = 0
-		case "G":
-			r.scroll = max(0, (r.maxscroll-r.vheight)+2)
-		case "+":
-			r.padding++
-			r.resize()
-		case "-":
-			r.padding = max(0, r.padding-1)
-			r.resize()
-		case "p":
-			// Previous chapter
-			first := r.verses[0]
-			chapter := first.Chapter
+		if r.state == reading {
+			switch msg.String() {
+			case "esc", "q", "ctrl+c":
+				r.quit = true
+				return r, tea.Quit
+			case "j", "down":
+				if r.scroll < r.maxscroll {
+					r.scroll++
+				}
+			case "k", "up":
+				if r.scroll > 0 {
+					r.scroll--
+				}
+			case "g":
+				r.scroll = 0
+			case "G":
+				r.scroll = max(0, (r.maxscroll-r.vheight)+2)
+			case "+":
+				r.padding++
+				r.resize()
+			case "-":
+				r.padding = max(0, r.padding-1)
+				r.resize()
+			case "p":
+				// Previous chapter
+				first := r.verses[0]
+				chapter := first.Chapter
 
-			if r.books == nil {
-				var err error
-				r.books, err = r.searcher.Booklist()
+				if r.books == nil {
+					var err error
+					r.books, err = r.searcher.Booklist()
+					if err != nil {
+						r.Error = err
+						r.quit = true
+						return r, tea.Quit
+					}
+				}
+
+				// Handle being beginning of book
+				book := first.Book
+				if chapter == 1 {
+					index := slices.IndexFunc(r.books, func(b model.Book) bool {
+						return b.Name == first.Book
+					})
+					if index == -1 {
+						r.Error = errors.New("Book not found")
+						r.quit = true
+						return r, tea.Quit
+					} else if index == 0 {
+						book = r.books[len(r.books)-1].Name
+						chapter = r.books[len(r.books)-1].Chapters + 1
+					} else {
+						book = r.books[index-1].Name
+						chapter = r.books[index-1].Chapters + 1
+					}
+				}
+				query := book + " " + strconv.Itoa(chapter-1)
+				err := r.ChangePassage(query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
 					return r, tea.Quit
 				}
-			}
+				return r, tea.SetWindowTitle(query)
+			case "n":
+				// Next chapter
+				last := r.verses[len(r.verses)-1]
+				chapter := last.Chapter
 
-			// Handle being beginning of book
-			book := first.Book
-			if chapter == 1 {
+				if r.books == nil {
+					var err error
+					r.books, err = r.searcher.Booklist()
+					if err != nil {
+						r.Error = err
+						r.quit = true
+						return r, tea.Quit
+					}
+				}
+
 				index := slices.IndexFunc(r.books, func(b model.Book) bool {
-					return b.Name == first.Book
+					return b.Name == last.Book
 				})
 				if index == -1 {
 					r.Error = errors.New("Book not found")
 					r.quit = true
 					return r, tea.Quit
-				} else if index == 0 {
-					book = r.books[len(r.books)-1].Name
-					chapter = r.books[len(r.books)-1].Chapters + 1
-				} else {
-					book = r.books[index-1].Name
-					chapter = r.books[index-1].Chapters + 1
 				}
-			}
-			query := book + " " + strconv.Itoa(chapter-1)
-			err := r.ChangePassage(query)
-			if err != nil {
-				r.Error = err
-				r.quit = true
-				return r, tea.Quit
-			}
-			return r, tea.SetWindowTitle(query)
-		case "n":
-			// Next chapter
-			last := r.verses[len(r.verses)-1]
-			chapter := last.Chapter
 
-			if r.books == nil {
-				var err error
-				r.books, err = r.searcher.Booklist()
+				// Handle being end of book
+				book := last.Book
+				if chapter == r.books[index].Chapters {
+					if index == len(r.books)-1 {
+						book = r.books[0].Name
+						chapter = 0
+					} else {
+						book = r.books[index+1].Name
+						chapter = 0
+					}
+				}
+				query := book + " " + strconv.Itoa(chapter+1)
+				err := r.ChangePassage(query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
 					return r, tea.Quit
 				}
+				return r, tea.SetWindowTitle(query)
+			case "/":
+				r.state = searching
 			}
-
-			index := slices.IndexFunc(r.books, func(b model.Book) bool {
-				return b.Name == last.Book
-			})
-			if index == -1 {
-				r.Error = errors.New("Book not found")
+		} else if r.state == searching {
+			switch msg.String() {
+			case "esc":
+				r.state = reading
+				r.searchbuffer = ""
+			case "ctrl+c":
 				r.quit = true
 				return r, tea.Quit
-			}
-
-			// Handle being end of book
-			book := last.Book
-			if chapter == r.books[index].Chapters {
-				if index == len(r.books)-1 {
-					book = r.books[0].Name
-					chapter = 0
-				} else {
-					book = r.books[index+1].Name
-					chapter = 0
+			case "enter":
+				err := r.ChangePassage(r.searchbuffer)
+				if err != nil {
+					r.Error = err
+					r.quit = true
+					return r, tea.Quit
+				}
+				title := r.searchbuffer
+				r.searchbuffer = ""
+				r.state = reading
+				return r, tea.SetWindowTitle(title)
+			default:
+				runes := []rune(msg.String())
+				if len(runes) == 1 && utf8.ValidRune(runes[0]) {
+					r.searchbuffer += string(runes[0])
 				}
 			}
-			query := book + " " + strconv.Itoa(chapter+1)
-			err := r.ChangePassage(query)
-			if err != nil {
-				r.Error = err
-				r.quit = true
-				return r, tea.Quit
-			}
-			return r, tea.SetWindowTitle(query)
+		} else {
+			panic("Invalid state")
 		}
 	case tea.MouseMsg:
 		switch msg.String() {
@@ -294,5 +337,16 @@ func (r *Reader) View() string {
 		view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
 	}
 
-	return view.String()
+	output := view.String()
+
+	if r.state == searching {
+		split := strings.Split(output, "\n")
+		for len(split) < r.vheight {
+			split = append(split, "")
+		}
+		split[len(split)-1] = lpad + SearchStyle.Render("/"+r.searchbuffer)
+		output = strings.Join(split, "\n")
+	}
+
+	return output
 }

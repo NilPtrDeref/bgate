@@ -19,7 +19,7 @@ import (
 var root = &cobra.Command{
 	Use:   "bgate [flags] <query>",
 	Short: "A terminal interface to Bible Gateway",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("translation", cmd.Flag("translation"))
 		viper.BindPFlag("interactive", cmd.Flag("interactive"))
@@ -30,7 +30,7 @@ var root = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
-		query := args[0]
+		query := strings.Join(args, " ")
 		interactive := viper.GetBool("interactive")
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
