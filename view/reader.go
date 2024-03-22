@@ -88,7 +88,8 @@ func (r *Reader) chunks(s string, chunkSize int) []string {
 	return chunks
 }
 
-func (r *Reader) resize(width int) {
+func (r *Reader) resize() {
+	width := r.vwidth - 2*r.padding
 	lines := []string{}
 
 	for i := 0; i < len(r.verses); i++ {
@@ -137,7 +138,7 @@ func (r *Reader) ChangePassage(query string) (err error) {
 		return errors.New("No verses found")
 	}
 
-	r.resize(r.vwidth - 2*r.padding)
+	r.resize()
 	return nil
 }
 
@@ -145,7 +146,7 @@ func (r *Reader) SetWindowSize(width, height int) {
 	r.vheight = height
 
 	r.vwidth = width
-	r.resize(width - 2*r.padding)
+	r.resize()
 
 	r.maxscroll = max(0, len(r.lines)-1)
 	r.scroll = min(r.scroll, r.maxscroll)
@@ -170,6 +171,12 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			r.scroll = 0
 		case "G":
 			r.scroll = max(0, (r.maxscroll-r.vheight)+2)
+		case "+":
+			r.padding++
+			r.resize()
+		case "-":
+			r.padding = max(0, r.padding-1)
+			r.resize()
 		case "p":
 			// Previous chapter
 			first := r.verses[0]
