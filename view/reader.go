@@ -296,6 +296,10 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.searchbuffer = ""
 				r.state = reading
 				return r, tea.SetWindowTitle(title)
+			case "backspace":
+				if len(r.searchbuffer) > 0 {
+					r.searchbuffer = r.searchbuffer[:len(r.searchbuffer)-1]
+				}
 			default:
 				runes := []rune(msg.String())
 				if len(runes) == 1 && utf8.ValidRune(runes[0]) {
@@ -341,7 +345,7 @@ func (r *Reader) View() string {
 
 	if r.state == searching {
 		split := strings.Split(output, "\n")
-		for len(split) < r.vheight {
+		for len(split) < r.vheight-1 {
 			split = append(split, "")
 		}
 		split[len(split)-1] = lpad + SearchStyle.Render("/"+r.searchbuffer)
