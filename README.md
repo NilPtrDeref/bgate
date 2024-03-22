@@ -45,6 +45,8 @@ which would pull up 1 Corinthians 1 in an interactive session.
 * `G` - Bottom
 * `p` - Previous Chapter (starting from first verse on screen)
 * `n` - Next Chapter (starting from last verse on screen)
+* `+` - Increase the padding
+* `-` - Decrease the padding
 * `q/esc/ctrl+c` - Quit
 
 ## Config
