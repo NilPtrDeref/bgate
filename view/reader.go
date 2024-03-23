@@ -104,6 +104,11 @@ func (r *Reader) resize() {
 	width := r.vwidth - 2*r.padding
 	lines := []string{}
 
+	if len(r.verses) == 0 {
+		r.lines = []string{"No results found"}
+		return
+	}
+
 	for i := 0; i < len(r.verses); i++ {
 		current := r.verses[i]
 		if current.HasTitle() {
@@ -144,10 +149,6 @@ func (r *Reader) ChangePassage(query string) (err error) {
 	r.verses, err = r.searcher.Query(query)
 	if err != nil {
 		return err
-	}
-
-	if len(r.verses) == 0 {
-		return errors.New("No verses found")
 	}
 
 	r.resize()
