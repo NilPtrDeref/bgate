@@ -62,7 +62,7 @@ var root = &cobra.Command{
 			return
 		}
 
-		p := tea.NewProgram(r, tea.WithMouseCellMotion())
+		p := tea.NewProgram(r, tea.WithMouseCellMotion(), tea.WithAltScreen())
 		p.SetWindowTitle(query)
 		if _, err := p.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
