@@ -2,6 +2,7 @@ package view
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -105,7 +106,7 @@ func (r *Reader) resize() {
 	lines := []string{}
 
 	if len(r.verses) == 0 {
-		r.lines = []string{"No results found"}
+		r.lines = []string{fmt.Sprintf("No results found for %q", r.query)}
 		return
 	}
 
@@ -224,14 +225,14 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = r.books[index-1].Chapters + 1
 					}
 				}
-				query := book + " " + strconv.Itoa(chapter-1)
-				err := r.ChangePassage(query)
+				r.query = book + " " + strconv.Itoa(chapter-1)
+				err := r.ChangePassage(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
 					return r, tea.Quit
 				}
-				return r, tea.SetWindowTitle(query)
+				return r, tea.SetWindowTitle(r.query)
 			case "n":
 				// Next chapter
 				last := r.verses[len(r.verses)-1]
@@ -267,14 +268,14 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = 0
 					}
 				}
-				query := book + " " + strconv.Itoa(chapter+1)
-				err := r.ChangePassage(query)
+				r.query = book + " " + strconv.Itoa(chapter+1)
+				err := r.ChangePassage(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
 					return r, tea.Quit
 				}
-				return r, tea.SetWindowTitle(query)
+				return r, tea.SetWindowTitle(r.query)
 			case "/":
 				r.state = searching
 			}
@@ -287,7 +288,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.quit = true
 				return r, tea.Quit
 			case "enter":
-				err := r.ChangePassage(r.searchbuffer)
+				r.query = r.searchbuffer
+				err := r.ChangePassage(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true

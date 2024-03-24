@@ -57,6 +57,7 @@ var root = &cobra.Command{
 				panic(err)
 			}
 			r.SetWindowSize(width, math.MaxInt32)
+			r.ChangePassage(query)
 			v := r.View()
 			fmt.Print(v)
 			return
