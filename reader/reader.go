@@ -1,4 +1,4 @@
-package view
+package reader
 
 import (
 	"errors"
@@ -66,41 +66,6 @@ func (r *Reader) Init() tea.Cmd {
 	return nil
 }
 
-func (r *Reader) chunks(s string, chunkSize int) []string {
-	words := strings.Split(s, " ")
-	var chunks []string
-	var current []string
-	var ccount int
-
-	for _, word := range words {
-		var wsize, _ = lipgloss.Size(word)
-		var size = chunkSize
-		if !r.wrap && len(chunks) > 0 {
-			size -= 4
-		}
-
-		if ccount+wsize > size {
-			if !r.wrap && len(chunks) > 0 {
-				current[0] = "    " + current[0]
-			}
-			chunks = append(chunks, strings.Join(current, " "))
-
-			ccount = 0
-			current = nil
-		}
-
-		ccount += wsize + 1
-		current = append(current, word)
-	}
-
-	if !r.wrap && len(chunks) > 0 {
-		current[0] = "    " + current[0]
-	}
-	chunks = append(chunks, strings.Join(current, " "))
-
-	return chunks
-}
-
 func (r *Reader) resize() {
 	width := r.vwidth - 2*r.padding
 	lines := []string{}
@@ -139,7 +104,12 @@ func (r *Reader) resize() {
 			}
 		}
 
-		chunked := r.chunks(line, width)
+		indentation := ""
+		if !r.wrap {
+			indentation = "    "
+		}
+
+		chunked := ResizeString(line, width, indentation)
 		lines = append(lines, chunked...)
 	}
 

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/woodywood117/bgate/reader"
 	"github.com/woodywood117/bgate/search"
-	"github.com/woodywood117/bgate/view"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -50,7 +50,7 @@ var root = &cobra.Command{
 			searcher = search.NewRemote(translation)
 		}
 
-		r := view.NewReader(searcher, query, wrap, padding)
+		r := reader.NewReader(searcher, query, wrap, padding)
 		if !interactive {
 			width, _, err := term.GetSize(0)
 			if err != nil {
