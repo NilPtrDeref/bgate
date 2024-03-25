@@ -50,14 +50,18 @@ var root = &cobra.Command{
 			searcher = search.NewRemote(translation)
 		}
 
-		r := reader.NewReader(searcher, query, wrap, padding)
+		width, height, err := term.GetSize(0)
+		if err != nil {
+			panic(err)
+		}
+
+		r := reader.NewReader(searcher, width, height)
+		r.SetPadding(padding)
+		r.SetWrap(wrap)
+		r.SetQuery(query)
+
 		if !interactive {
-			width, _, err := term.GetSize(0)
-			if err != nil {
-				panic(err)
-			}
 			r.SetWindowSize(width, math.MaxInt32)
-			r.ChangePassage(query)
 			v := r.View()
 			fmt.Print(v)
 			return

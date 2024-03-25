@@ -8,14 +8,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/woodywood117/bgate/model"
+	"github.com/woodywood117/bgate/reader/model"
+	"github.com/woodywood117/bgate/reader/style"
 	"github.com/woodywood117/bgate/search"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
-
-var SearchStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347"))
 
 type reader_state int
 
@@ -25,17 +23,17 @@ const (
 )
 
 type Reader struct {
-	searcher search.Searcher
-	query    string // Only the initial query, should never be written to after intialization
+	vwidth    int
+	vheight   int
+	scroll    int
+	maxscroll int
+	wrap      bool
+	padding   int
 
+	searcher     search.Searcher
+	query        string
 	verses       []model.Verse
-	wrap         bool
-	padding      int
 	lines        []string
-	scroll       int
-	maxscroll    int
-	vheight      int
-	vwidth       int
 	books        []model.Book
 	searchbuffer string
 
@@ -44,20 +42,51 @@ type Reader struct {
 	quit  bool
 }
 
-func NewReader(searcher search.Searcher, query string, wrap bool, padding int) *Reader {
+func NewReader(searcher search.Searcher, width, height int) *Reader {
 	return &Reader{
 		searcher: searcher,
-		query:    query,
-		wrap:     wrap,
-		padding:  padding,
-		scroll:   0,
-		vheight:  20,
-		vwidth:   20,
+		vwidth:   width,
+		vheight:  height,
 	}
 }
 
+func (r *Reader) SetWindowSize(width, height int) {
+	r.vheight = height
+	r.vwidth = width
+
+	r.ResizeText()
+
+	r.maxscroll = max(0, len(r.lines)-1)
+	r.scroll = min(r.scroll, r.maxscroll)
+}
+
+func (r *Reader) SetWrap(wrap bool) {
+	r.wrap = wrap
+	r.ResizeText()
+}
+
+func (r *Reader) SetPadding(padding int) {
+	r.padding = padding
+	r.ResizeText()
+}
+
+func (r *Reader) SetQuery(query string) (err error) {
+	r.query = query
+
+	if r.query != "" {
+		r.verses, err = r.searcher.Query(query)
+		if err != nil {
+			return err
+		}
+
+		r.ResizeText()
+	}
+
+	return nil
+}
+
 func (r *Reader) Init() tea.Cmd {
-	err := r.ChangePassage(r.query)
+	err := r.SetQuery(r.query)
 	if err != nil {
 		r.Error = err
 		r.quit = true
@@ -66,7 +95,7 @@ func (r *Reader) Init() tea.Cmd {
 	return nil
 }
 
-func (r *Reader) resize() {
+func (r *Reader) ResizeText() {
 	width := r.vwidth - 2*r.padding
 	lines := []string{}
 
@@ -116,26 +145,6 @@ func (r *Reader) resize() {
 	r.lines = lines
 }
 
-func (r *Reader) ChangePassage(query string) (err error) {
-	r.verses, err = r.searcher.Query(query)
-	if err != nil {
-		return err
-	}
-
-	r.resize()
-	return nil
-}
-
-func (r *Reader) SetWindowSize(width, height int) {
-	r.vheight = height
-
-	r.vwidth = width
-	r.resize()
-
-	r.maxscroll = max(0, len(r.lines)-1)
-	r.scroll = min(r.scroll, r.maxscroll)
-}
-
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -158,10 +167,10 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.scroll = max(0, (r.maxscroll-r.vheight)+2)
 			case "+":
 				r.padding++
-				r.resize()
+				r.ResizeText()
 			case "-":
 				r.padding = max(0, r.padding-1)
-				r.resize()
+				r.ResizeText()
 			case "p":
 				// Previous chapter
 				first := r.verses[0]
@@ -196,7 +205,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				r.query = book + " " + strconv.Itoa(chapter-1)
-				err := r.ChangePassage(r.query)
+				err := r.SetQuery(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
@@ -239,7 +248,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				r.query = book + " " + strconv.Itoa(chapter+1)
-				err := r.ChangePassage(r.query)
+				err := r.SetQuery(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
@@ -259,7 +268,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return r, tea.Quit
 			case "enter":
 				r.query = r.searchbuffer
-				err := r.ChangePassage(r.query)
+				err := r.SetQuery(r.query)
 				if err != nil {
 					r.Error = err
 					r.quit = true
@@ -321,7 +330,7 @@ func (r *Reader) View() string {
 		for len(split) < r.vheight-1 {
 			split = append(split, "")
 		}
-		split[len(split)-1] = lpad + SearchStyle.Render("/"+r.searchbuffer)
+		split[len(split)-1] = lpad + style.SearchStyle.Render("/"+r.searchbuffer)
 		output = strings.Join(split, "\n")
 	}
 

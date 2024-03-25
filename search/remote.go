@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/woodywood117/bgate/model"
+	"github.com/woodywood117/bgate/reader/model"
 )
 
 type Remote struct {

@@ -4,20 +4,8 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/woodywood117/bgate/reader/style"
 )
-
-var TitleStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#06D6A0"))
-
-var ChapterStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#EF476F")).
-	Background(lipgloss.Color("#FCFCFC"))
-
-var NumberStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#6A7FDB"))
 
 type Verse struct {
 	Book    string  `db:"book"`
@@ -33,17 +21,17 @@ func (v Verse) HasTitle() bool {
 }
 
 func (v Verse) TitleString() string {
-	return TitleStyle.Render(*v.Title)
+	return style.TitleStyle.Render(*v.Title)
 }
 
 func (v Verse) ChapterString() string {
 	text := fmt.Sprintf(" %s: %d ", v.Book, v.Chapter)
-	return ChapterStyle.Render(text)
+	return style.ChapterStyle.Render(text)
 }
 
 func (v Verse) NumberString() string {
 	text := fmt.Sprintf("%d ", v.Number)
-	return NumberStyle.Render(text)
+	return style.NumberStyle.Render(text)
 }
 
 var BookStyle = lipgloss.NewStyle().
