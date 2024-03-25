@@ -73,8 +73,8 @@ var root = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 			os.Exit(1)
 		}
-		if r.Error != nil {
-			fmt.Fprintf(os.Stderr, "Error running program: %v\n", r.Error)
+		if err = r.GetError(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 			os.Exit(1)
 		}
 	},

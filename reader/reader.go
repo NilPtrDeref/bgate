@@ -38,8 +38,7 @@ type Reader struct {
 	searchbuffer string
 
 	state reader_state
-	Error error
-	quit  bool
+	error error
 }
 
 func NewReader(searcher search.Searcher, width, height int) *Reader {
@@ -70,13 +69,14 @@ func (r *Reader) SetPadding(padding int) {
 	r.ResizeText()
 }
 
-func (r *Reader) SetQuery(query string) (err error) {
+func (r *Reader) SetQuery(query string) error {
 	r.query = query
 
 	if r.query != "" {
-		r.verses, err = r.searcher.Query(query)
-		if err != nil {
-			return err
+		r.verses, r.error = r.searcher.Query(query)
+		if r.error != nil {
+			r.lines = nil
+			return r.error
 		}
 
 		r.ResizeText()
@@ -85,22 +85,22 @@ func (r *Reader) SetQuery(query string) (err error) {
 	return nil
 }
 
+func (r *Reader) GetError() error {
+	return r.error
+}
+
 func (r *Reader) Init() tea.Cmd {
 	err := r.SetQuery(r.query)
-	if err != nil {
-		r.Error = err
-		r.quit = true
-		return tea.Quit
-	}
+	r.error = err
 	return nil
 }
 
 func (r *Reader) ResizeText() {
 	width := r.vwidth - 2*r.padding
 	lines := []string{}
-
 	if len(r.verses) == 0 {
-		r.lines = []string{fmt.Sprintf("No results found for %q", r.query)}
+		r.error = fmt.Errorf("no results found for %q", r.query)
+		r.lines = nil
 		return
 	}
 
@@ -151,7 +151,6 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if r.state == reading {
 			switch msg.String() {
 			case "esc", "q", "ctrl+c":
-				r.quit = true
 				return r, tea.Quit
 			case "j", "down":
 				if r.scroll < r.maxscroll {
@@ -177,12 +176,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				chapter := first.Chapter
 
 				if r.books == nil {
-					var err error
-					r.books, err = r.searcher.Booklist()
-					if err != nil {
-						r.Error = err
-						r.quit = true
-						return r, tea.Quit
+					r.books, r.error = r.searcher.Booklist()
+					if r.error != nil {
+						return r, nil
 					}
 				}
 
@@ -193,9 +189,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return b.Name == first.Book
 					})
 					if index == -1 {
-						r.Error = errors.New("Book not found")
-						r.quit = true
-						return r, tea.Quit
+						r.error = errors.New("error finding current book in booklist: not found")
+						return r, nil
 					} else if index == 0 {
 						book = r.books[len(r.books)-1].Name
 						chapter = r.books[len(r.books)-1].Chapters + 1
@@ -204,12 +199,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = r.books[index-1].Chapters + 1
 					}
 				}
-				r.query = book + " " + strconv.Itoa(chapter-1)
-				err := r.SetQuery(r.query)
-				if err != nil {
-					r.Error = err
-					r.quit = true
-					return r, tea.Quit
+				r.error = r.SetQuery(book + " " + strconv.Itoa(chapter-1))
+				if r.error != nil {
+					return r, nil
 				}
 				return r, tea.SetWindowTitle(r.query)
 			case "n":
@@ -218,12 +210,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				chapter := last.Chapter
 
 				if r.books == nil {
-					var err error
-					r.books, err = r.searcher.Booklist()
-					if err != nil {
-						r.Error = err
-						r.quit = true
-						return r, tea.Quit
+					r.books, r.error = r.searcher.Booklist()
+					if r.error != nil {
+						return r, nil
 					}
 				}
 
@@ -231,9 +220,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return b.Name == last.Book
 				})
 				if index == -1 {
-					r.Error = errors.New("Book not found")
-					r.quit = true
-					return r, tea.Quit
+					r.error = errors.New("error when finding current book in booklist: not found")
+					return r, nil
 				}
 
 				// Handle being end of book
@@ -247,12 +235,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = 0
 					}
 				}
-				r.query = book + " " + strconv.Itoa(chapter+1)
-				err := r.SetQuery(r.query)
-				if err != nil {
-					r.Error = err
-					r.quit = true
-					return r, tea.Quit
+				r.error = r.SetQuery(book + " " + strconv.Itoa(chapter+1))
+				if r.error != nil {
+					return r, nil
 				}
 				return r, tea.SetWindowTitle(r.query)
 			case "/":
@@ -264,16 +249,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.state = reading
 				r.searchbuffer = ""
 			case "ctrl+c":
-				r.quit = true
 				return r, tea.Quit
 			case "enter":
-				r.query = r.searchbuffer
-				err := r.SetQuery(r.query)
-				if err != nil {
-					r.Error = err
-					r.quit = true
-					return r, tea.Quit
-				}
+				r.SetQuery(r.searchbuffer)
 				title := r.searchbuffer
 				r.searchbuffer = ""
 				r.state = reading
@@ -309,22 +287,22 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (r *Reader) View() string {
-	if r.quit {
-		return ""
-	}
-
 	var view strings.Builder
-
 	lpad := strings.Repeat(" ", r.padding)
-	for i := 0; i < r.vheight-1; i++ {
-		if r.scroll+i >= len(r.lines) {
-			break
+
+	if r.error != nil {
+		view.WriteString(lpad + style.ErrorStyle.Render(r.error.Error()) + "\n")
+	} else {
+		for i := 0; i < r.vheight-1; i++ {
+			if r.scroll+i >= len(r.lines) {
+				break
+			}
+			view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
 		}
-		view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
 	}
 
+	// TODO: Use lipgloss height function
 	output := view.String()
-
 	if r.state == searching {
 		split := strings.Split(output, "\n")
 		for len(split) < r.vheight-1 {

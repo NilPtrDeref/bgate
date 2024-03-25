@@ -16,3 +16,5 @@ var NumberStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#6A7FDB"))
 
 var SearchStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347"))
+
+var ErrorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6666"))
