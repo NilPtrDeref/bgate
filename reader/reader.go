@@ -297,7 +297,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return r, nil
 }
 
-const helptext = "q/esc: quit\n\nj/k or up/down: scroll\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n/: search\n\n?: help"
+const helptext = "q/esc: quit\n\nj/k or up/down: scroll\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n+/-: increase/decrease padding\n\n/: search\n\n?: help"
 
 func (r *Reader) View() string {
 	var view strings.Builder

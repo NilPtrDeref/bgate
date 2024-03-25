@@ -48,6 +48,7 @@ which would pull up 1 Corinthians 1 in an interactive session.
 * `+` - Increase the padding
 * `-` - Decrease the padding
 * `/{search}<enter>` - Search for a new text
+* `?` - Help screen (q/esc to exit help)
 * `q/esc/ctrl+c` - Quit
 
 ## Config
