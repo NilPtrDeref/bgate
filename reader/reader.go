@@ -301,7 +301,6 @@ func (r *Reader) View() string {
 		}
 	}
 
-	// TODO: Use lipgloss height function
 	output := view.String()
 	if r.state == searching {
 		split := strings.Split(output, "\n")
