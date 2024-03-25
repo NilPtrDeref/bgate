@@ -13,6 +13,7 @@ import (
 	"github.com/woodywood117/bgate/search"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type reader_state int
@@ -20,6 +21,7 @@ type reader_state int
 const (
 	reading reader_state = iota
 	searching
+	help
 )
 
 type Reader struct {
@@ -242,6 +244,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return r, tea.SetWindowTitle(r.query)
 			case "/":
 				r.state = searching
+			case "?":
+				r.state = help
 			}
 		} else if r.state == searching {
 			switch msg.String() {
@@ -266,6 +270,13 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					r.searchbuffer += string(runes[0])
 				}
 			}
+		} else if r.state == help {
+			switch msg.String() {
+			case "esc", "q":
+				r.state = reading
+			case "ctrl+c":
+				return r, tea.Quit
+			}
 		} else {
 			panic("Invalid state")
 		}
@@ -286,9 +297,17 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return r, nil
 }
 
+const helptext = "q/esc: quit\n\nj/k or up/down: scroll\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n/: search\n\n?: help"
+
 func (r *Reader) View() string {
 	var view strings.Builder
 	lpad := strings.Repeat(" ", r.padding)
+
+	if r.state == help {
+		hpad := (r.vwidth - lipgloss.Width(helptext)) / 2
+		vpad := (r.vheight - lipgloss.Height(helptext)) / 2
+		return style.SearchStyle.PaddingTop(vpad).PaddingLeft(hpad).Render(helptext)
+	}
 
 	if r.error != nil {
 		view.WriteString(lpad + style.ErrorStyle.Render(r.error.Error()) + "\n")
