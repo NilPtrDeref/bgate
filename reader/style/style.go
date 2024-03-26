@@ -15,7 +15,9 @@ var NumberStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#6A7FDB"))
 
-var SearchStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347"))
+var HeaderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347")).Bold(true).AlignHorizontal(lipgloss.Center)
+
+var SearchStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347")).Bold(true)
 
 var HelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB347")).Align(lipgloss.Center)
 

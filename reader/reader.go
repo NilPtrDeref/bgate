@@ -246,6 +246,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					e := err.Error()
 					r.viewport.SetContent(style.ErrorStyle.Render(e))
+					r.searchbuffer = ""
+					r.mode = read
 					return r, nil
 				}
 				r.viewport.SetContent(content)
@@ -305,12 +307,12 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 const helptext = "q/esc: quit\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n+/-: increase/decrease padding\n\nw: toggle wrap\n\n/: search\n\n?: help\n\n"
 
 func (r *Reader) Header() string {
-	return style.SearchStyle.Bold(true).Width(r.viewport.Width-(2*r.padding)).AlignHorizontal(lipgloss.Center).Margin(0, r.padding).Render(r.searcher.Translation())
+	return style.HeaderStyle.Width(r.viewport.Width-(2*r.padding)).Margin(0, r.padding).Render(r.searcher.Translation())
 }
 
 func (r *Reader) Footer() string {
 	if r.mode == searching {
-		return style.SearchStyle.Bold(true).Padding(0, r.padding).Render("/" + r.searchbuffer)
+		return style.SearchStyle.Padding(0, r.padding).Render("/" + r.searchbuffer)
 	}
 	return ""
 }
