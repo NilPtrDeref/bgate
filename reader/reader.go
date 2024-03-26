@@ -13,6 +13,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type mode int
@@ -118,14 +119,6 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc", "q", "ctrl+c":
 				return r, tea.Quit
-			// case "j":
-			// 	if !r.viewport.AtBottom() {
-			// 		r.viewport.YOffset++
-			// 	}
-			// case "k":
-			// 	if !r.viewport.AtTop() {
-			// 		r.viewport.YOffset--
-			// 	}
 			case "g":
 				r.viewport.GotoTop()
 			case "G":
@@ -136,6 +129,16 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "-":
 				r.padding = max(0, r.padding-1)
 				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
+			case "w":
+				r.viewport.YOffset = 0
+				r.wrap = !r.wrap
+				content, err := r.Query(r.query)
+				if err != nil {
+					e := err.Error()
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
+					return r, nil
+				}
+				r.viewport.SetContent(content)
 			case "p":
 				r.viewport.YOffset = 0
 
@@ -293,47 +296,54 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	r.viewport, cmd = r.viewport.Update(msg)
+	if r.mode == read {
+		r.viewport, cmd = r.viewport.Update(msg)
+	}
 	return r, cmd
 }
 
-const helptext = "q/esc: quit\n\nj/k or up/down: scroll\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n+/-: increase/decrease padding\n\n/: search\n\n?: help"
+const helptext = "q/esc: quit\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n+/-: increase/decrease padding\n\nw: toggle wrap\n\n/: search\n\n?: help\n\n"
+
+func (r *Reader) Header() string {
+	return style.SearchStyle.Bold(true).Width(r.viewport.Width-(2*r.padding)).AlignHorizontal(lipgloss.Center).Margin(0, r.padding).Render(r.searcher.Translation())
+}
+
+func (r *Reader) Footer() string {
+	if r.mode == searching {
+		return style.SearchStyle.Bold(true).Padding(0, r.padding).Render("/" + r.searchbuffer)
+	}
+	return ""
+}
 
 func (r *Reader) View() string {
 	if !r.ready {
 		return "\n  Initializing..."
 	}
-	return fmt.Sprintf("%s\n%s\n%s", "header", r.viewport.View(), "footer")
 
-	// var view strings.Builder
-	// lpad := strings.Repeat(" ", r.Padding)
-	//
-	// if r.mode == help {
-	// 	hpad := (r.vwidth - lipgloss.Width(helptext)) / 2
-	// 	vpad := (r.vheight - lipgloss.Height(helptext)) / 2
-	// 	return style.SearchStyle.PaddingTop(vpad).PaddingLeft(hpad).Render(helptext)
-	// }
-	//
-	// if r.error != nil {
-	// 	view.WriteString(lpad + style.ErrorStyle.Render(r.error.Error()) + "\n")
-	// } else {
-	// 	for i := 0; i < r.vheight-1; i++ {
-	// 		if r.scroll+i >= len(r.lines) {
-	// 			break
-	// 		}
-	// 		view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
-	// 	}
-	// }
-	//
-	// output := view.String()
-	// if r.mode == searching {
-	// 	split := strings.Split(output, "\n")
-	// 	for len(split) < r.vheight-1 {
-	// 		split = append(split, "")
-	// 	}
-	// 	split[len(split)-1] = lpad + style.SearchStyle.Render("/"+r.searchbuffer)
-	// 	output = strings.Join(split, "\n")
-	// }
-	//
-	// return output
+	if r.mode == help {
+		var writer strings.Builder
+		writer.WriteString(helptext)
+		writer.WriteString(r.viewport.KeyMap.Up.Help().Key + ": " + r.viewport.KeyMap.Up.Help().Desc + "\n\n")
+		writer.WriteString(r.viewport.KeyMap.Down.Help().Key + ": " + r.viewport.KeyMap.Down.Help().Desc + "\n\n")
+		writer.WriteString(r.viewport.KeyMap.PageUp.Help().Key + ": " + r.viewport.KeyMap.PageUp.Help().Desc + "\n\n")
+		writer.WriteString(r.viewport.KeyMap.PageDown.Help().Key + ": " + r.viewport.KeyMap.PageDown.Help().Desc + "\n\n")
+		writer.WriteString(r.viewport.KeyMap.HalfPageUp.Help().Key + ": " + r.viewport.KeyMap.HalfPageUp.Help().Desc + "\n\n")
+		writer.WriteString(r.viewport.KeyMap.HalfPageDown.Help().Key + ": " + r.viewport.KeyMap.HalfPageDown.Help().Desc + "\n\n")
+
+		hpad := (r.viewport.Width - lipgloss.Width(writer.String())) / 2
+		vpad := (r.viewport.Height - lipgloss.Height(writer.String())) / 2
+
+		return fmt.Sprintf(
+			"%s\n%s\n%s",
+			r.Header(),
+			style.HelpStyle.Padding(vpad, hpad).Render(writer.String()),
+			r.Footer(),
+		)
+	}
+	return fmt.Sprintf(
+		"%s\n%s\n%s",
+		r.Header(),
+		r.viewport.View(),
+		r.Footer(),
+	)
 }

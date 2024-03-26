@@ -224,3 +224,7 @@ func (r *Remote) Booklist() ([]model.Book, error) {
 
 	return books, nil
 }
+
+func (r *Remote) Translation() string {
+	return r.translation
+}
