@@ -60,7 +60,6 @@ Config values use the same name as the flag. Below is my personal config.
 ``` json
 {
 	"translation": "LSB",
-	"interactive": true,
 	"padding": 60
 }
 ```
