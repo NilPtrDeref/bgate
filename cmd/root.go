@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/term"
 )
 
 var root = &cobra.Command{
@@ -22,7 +20,6 @@ var root = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("translation", cmd.Flag("translation"))
-		viper.BindPFlag("interactive", cmd.Flag("interactive"))
 		viper.BindPFlag("padding", cmd.Flag("padding"))
 		viper.BindPFlag("wrap", cmd.Flag("wrap"))
 		viper.BindPFlag("force-local", cmd.Flag("force-local"))
@@ -31,7 +28,6 @@ var root = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		translation := viper.GetString("translation")
 		query := strings.Join(args, " ")
-		interactive := viper.GetBool("interactive")
 		padding := viper.GetInt("padding")
 		wrap := viper.GetBool("wrap")
 
@@ -50,30 +46,13 @@ var root = &cobra.Command{
 			searcher = search.NewRemote(translation)
 		}
 
-		width, height, err := term.GetSize(0)
-		if err != nil {
-			panic(err)
-		}
-
-		r := reader.NewReader(searcher, width, height)
+		r := reader.NewReader(searcher, query)
 		r.SetPadding(padding)
 		r.SetWrap(wrap)
-		r.SetQuery(query)
-
-		if !interactive {
-			r.SetWindowSize(width, math.MaxInt32)
-			v := r.View()
-			fmt.Print(v)
-			return
-		}
 
 		p := tea.NewProgram(r, tea.WithMouseCellMotion(), tea.WithAltScreen())
 		p.SetWindowTitle(query)
 		if _, err := p.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
-			os.Exit(1)
-		}
-		if err = r.GetError(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 			os.Exit(1)
 		}
@@ -91,7 +70,6 @@ func init() {
 	var config string
 	root.PersistentFlags().StringVarP(&config, "config", "c", "~/.config/bgate/config.json", "Config file to use.")
 	root.Flags().StringP("translation", "t", "ESV", "The translation of the Bible to search for.")
-	root.Flags().BoolP("interactive", "i", false, "Interactive view, allows you to scroll using j/up and k/down.")
 	root.Flags().IntP("padding", "p", 0, "Horizontal padding in character count.")
 	root.Flags().BoolP("wrap", "w", false, "Wrap verses, this will cause it to not start each verse on a new line.")
 	root.Flags().Bool("force-local", false, "Force the program to crash if there isn't a local copy of the translation you're trying to read.")
