@@ -28,7 +28,8 @@ func TranslationHasLocal(translation string) (bool, error) {
 }
 
 type Local struct {
-	db *sqlx.DB
+	db          *sqlx.DB
+	translation string
 }
 
 func NewLocal(translation string) (*Local, error) {
@@ -42,7 +43,7 @@ func NewLocal(translation string) (*Local, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Local{db}, nil
+	return &Local{db, translation}, nil
 }
 
 func (l *Local) Query(query string) ([]model.Verse, error) {
@@ -72,4 +73,8 @@ func (l *Local) Booklist() ([]model.Book, error) {
 
 func (l *Local) Close() error {
 	return l.db.Close()
+}
+
+func (l *Local) Translation() string {
+	return l.translation
 }
