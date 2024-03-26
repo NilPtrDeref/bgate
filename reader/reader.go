@@ -127,9 +127,11 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "+":
 				r.padding++
 				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
+				r.viewport.SetContent(r.RenderVerses())
 			case "-":
 				r.padding = max(0, r.padding-1)
 				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
+				r.viewport.SetContent(r.RenderVerses())
 			case "w":
 				r.viewport.YOffset = 0
 				r.wrap = !r.wrap
