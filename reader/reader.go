@@ -33,9 +33,8 @@ type Reader struct {
 	wrap     bool
 	padding  int
 
-	first model.Verse
-	last  model.Verse
-	books []model.Book
+	verses []model.Verse
+	books  []model.Book
 
 	searchbuffer string
 }
@@ -62,23 +61,13 @@ func (r *Reader) SetWrap(w bool) {
 	r.wrap = w
 }
 
-func (r *Reader) Query(query string) (string, error) {
-	r.query = query
-
-	verses, err := r.searcher.Query(query)
-	if err != nil {
-		return "", err
+func (r *Reader) RenderVerses() string {
+	if len(r.verses) == 0 {
+		return style.ErrorStyle.Render(fmt.Sprintf("No results found for %q", r.query))
 	}
 
 	var writer strings.Builder
-	for index, verse := range verses {
-		if index == 0 {
-			r.first = verse
-		}
-		if index == len(verses)-1 {
-			r.last = verse
-		}
-
+	for index, verse := range r.verses {
 		title := verse.HasTitle()
 		chapter := verse.Number == 1 && verse.Part == 1
 
@@ -109,7 +98,19 @@ func (r *Reader) Query(query string) (string, error) {
 	if r.wrap {
 		indentation = ""
 	}
-	return ResizeString(writer.String(), r.viewport.Width-(2*r.padding), indentation), nil
+	return ResizeString(writer.String(), r.viewport.Width-(2*r.padding), indentation)
+}
+
+func (r *Reader) Query(query string) (string, error) {
+	r.query = query
+
+	var err error
+	r.verses, err = r.searcher.Query(query)
+	if err != nil {
+		return "", err
+	}
+
+	return r.RenderVerses(), nil
 }
 
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -132,18 +133,22 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "w":
 				r.viewport.YOffset = 0
 				r.wrap = !r.wrap
-				content, err := r.Query(r.query)
-				if err != nil {
-					e := err.Error()
-					r.viewport.SetContent(style.ErrorStyle.Render(e))
-					return r, nil
-				}
+
+				content := r.RenderVerses()
 				r.viewport.SetContent(content)
 			case "p":
 				r.viewport.YOffset = 0
 
+				if len(r.verses) == 0 {
+					e := "You must have a selected passage to go to the previous chapter."
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
+					return r, nil
+				}
+
+				first := r.verses[0]
+
 				// Previous chapter
-				chapter := r.first.Chapter
+				chapter := first.Chapter
 
 				if r.books == nil {
 					var err error
@@ -156,10 +161,10 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Handle being beginning of book
-				book := r.first.Book
+				book := first.Book
 				if chapter == 1 {
 					index := slices.IndexFunc(r.books, func(b model.Book) bool {
-						return b.Name == r.first.Book
+						return b.Name == first.Book
 					})
 					if index == -1 {
 						e := "error finding current book in booklist: not found"
@@ -185,8 +190,16 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "n":
 				r.viewport.YOffset = 0
 
+				if len(r.verses) == 0 {
+					e := "You must have a selected passage to go to the next chapter."
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
+					return r, nil
+				}
+
+				last := r.verses[len(r.verses)-1]
+
 				// Next chapter
-				chapter := r.last.Chapter
+				chapter := last.Chapter
 
 				if r.books == nil {
 					var err error
@@ -199,7 +212,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				index := slices.IndexFunc(r.books, func(b model.Book) bool {
-					return b.Name == r.last.Book
+					return b.Name == last.Book
 				})
 				if index == -1 {
 					e := "error finding current book in booklist: not found"
@@ -208,7 +221,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Handle being end of book
-				book := r.last.Book
+				book := last.Book
 				if chapter == r.books[index].Chapters {
 					if index == len(r.books)-1 {
 						book = r.books[0].Name
@@ -291,8 +304,10 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			r.viewport.SetContent(content)
 		} else {
+			r.viewport.YOffset = 0
 			r.viewport.Width = msg.Width
 			r.viewport.Height = msg.Height - 2
+			r.viewport.SetContent(r.RenderVerses())
 		}
 	}
 
