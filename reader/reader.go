@@ -278,7 +278,9 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if !r.ready {
+			r.ready = true
 			r.viewport = viewport.New(msg.Width, msg.Height-2)
+			r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
 
 			content, err := r.Query(r.query)
 			if err != nil {
@@ -287,10 +289,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return r, nil
 			}
 
-			r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
 			r.viewport.SetContent(content)
-
-			r.ready = true
 		} else {
 			r.viewport.Width = msg.Width
 			r.viewport.Height = msg.Height - 2
