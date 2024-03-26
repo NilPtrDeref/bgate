@@ -17,7 +17,6 @@ Flags:
       --force-local          Force the program to crash if there isn't a local copy of the translation you're trying to read.
       --force-remote         Force the program to use the remote searcher even if there is a local copy of the translation.
   -h, --help                 help for bgate
-  -i, --interactive          Interactive view, allows you to scroll using j/up and k/down.
   -p, --padding int          Horizontal padding in character count.
   -t, --translation string   The translation of the Bible to search for. (default "ESV")
   -w, --wrap                 Wrap verses, this will cause it to not start each verse on a new line.
@@ -39,12 +38,17 @@ bgate -t LSB -i 1cor1
 which would pull up 1 Corinthians 1 in an interactive session.
 
 ## Interactive Controls
-* `j` - Down
-* `k` - Up
+* `up/j` - Down
+* `down/k` - Up
+* `f/pgdown` - Page down
+* `b/pgup` - Page up
+* `u` - 1/2 Page up
+* `d` - 1/2 Page down
 * `g` - Top
 * `G` - Bottom
 * `p` - Previous Chapter (starting from first verse on screen)
 * `n` - Next Chapter (starting from last verse on screen)
+* `w` - Toggle wrap
 * `+` - Increase the padding
 * `-` - Decrease the padding
 * `/{search}<enter>` - Search for a new text
