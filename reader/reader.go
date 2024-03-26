@@ -1,7 +1,6 @@
 package reader
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -12,186 +11,142 @@ import (
 	"github.com/woodywood117/bgate/reader/style"
 	"github.com/woodywood117/bgate/search"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-type reader_state int
+type mode int
 
 const (
-	reading reader_state = iota
+	read mode = iota
 	searching
 	help
 )
 
 type Reader struct {
-	vwidth    int
-	vheight   int
-	scroll    int
-	maxscroll int
-	wrap      bool
-	padding   int
+	searcher search.Searcher
+	query    string
+	viewport viewport.Model
+	ready    bool
+	mode     mode
+	wrap     bool
+	padding  int
 
-	searcher     search.Searcher
-	query        string
-	verses       []model.Verse
-	lines        []string
-	books        []model.Book
+	first model.Verse
+	last  model.Verse
+	books []model.Book
+
 	searchbuffer string
-
-	state reader_state
-	error error
 }
 
-func NewReader(searcher search.Searcher, width, height int) *Reader {
+func NewReader(searcher search.Searcher, query string) *Reader {
 	return &Reader{
 		searcher: searcher,
-		vwidth:   width,
-		vheight:  height,
+		query:    query,
 	}
-}
-
-func (r *Reader) SetWindowSize(width, height int) {
-	r.vheight = height
-	r.vwidth = width
-
-	r.ResizeText()
-
-	r.maxscroll = max(0, len(r.lines)-1)
-	r.scroll = min(r.scroll, r.maxscroll)
-}
-
-func (r *Reader) SetWrap(wrap bool) {
-	r.wrap = wrap
-	r.ResizeText()
-}
-
-func (r *Reader) SetPadding(padding int) {
-	r.padding = padding
-	r.ResizeText()
-}
-
-func (r *Reader) SetQuery(query string) error {
-	r.query = query
-
-	if r.query != "" {
-		r.verses, r.error = r.searcher.Query(query)
-		if r.error != nil {
-			r.lines = nil
-			return r.error
-		}
-
-		r.ResizeText()
-	}
-
-	return nil
-}
-
-func (r *Reader) GetError() error {
-	return r.error
 }
 
 func (r *Reader) Init() tea.Cmd {
-	err := r.SetQuery(r.query)
-	r.error = err
 	return nil
 }
 
-func (r *Reader) ResizeText() {
-	width := r.vwidth - 2*r.padding
-	lines := []string{}
-	if len(r.verses) == 0 {
-		r.error = fmt.Errorf("no results found for %q", r.query)
-		r.lines = nil
-		return
+func (r *Reader) SetPadding(p int) {
+	r.padding = p
+	if r.ready {
+		r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
+	}
+}
+
+func (r *Reader) SetWrap(w bool) {
+	r.wrap = w
+}
+
+func (r *Reader) Query(query string) (string, error) {
+	r.query = query
+
+	verses, err := r.searcher.Query(query)
+	if err != nil {
+		return "", err
 	}
 
-	for i := 0; i < len(r.verses); i++ {
-		current := r.verses[i]
-		if current.HasTitle() {
-			lines = append(lines, current.TitleString())
+	var writer strings.Builder
+	for index, verse := range verses {
+		if index == 0 {
+			r.first = verse
+		}
+		if index == len(verses)-1 {
+			r.last = verse
 		}
 
-		if current.Number == 1 && current.Part == 1 {
-			lines = append(lines, current.ChapterString())
+		title := verse.HasTitle()
+		chapter := verse.Number == 1 && verse.Part == 1
+
+		if index != 0 && (title || chapter) {
+			writer.WriteString("\n")
 		}
 
-		var line string
-		if current.Part > 1 {
-			line = "    " + current.Text
+		if title {
+			writer.WriteString(verse.TitleString() + "\n")
+		}
+
+		if chapter {
+			writer.WriteString(verse.ChapterString() + "\n")
+		}
+
+		if verse.Part > 1 {
+			writer.WriteString("    " + verse.Text)
 		} else {
-			line = current.NumberString() + current.Text
+			writer.WriteString(verse.NumberString() + verse.Text)
 		}
 
-		if r.wrap && current.Part == 1 {
-			for {
-				if i+1 >= len(r.verses) || r.verses[i+1].HasTitle() || r.verses[i+1].Part > 1 {
-					break
-				}
-
-				current = r.verses[i+1]
-				line = strings.Join([]string{line, current.NumberString() + current.Text}, " ")
-				i++
-			}
-		}
-
-		indentation := ""
 		if !r.wrap {
-			indentation = "    "
+			writer.WriteString("\n")
 		}
-
-		chunked := ResizeString(line, width, indentation)
-		lines = append(lines, chunked...)
 	}
 
-	r.lines = lines
+	return writer.String(), nil
 }
 
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if r.state == reading {
+		if r.mode == read {
 			switch msg.String() {
 			case "esc", "q", "ctrl+c":
 				return r, tea.Quit
-			case "j", "down":
-				if r.scroll < r.maxscroll {
-					r.scroll++
-				}
-			case "k", "up":
-				if r.scroll > 0 {
-					r.scroll--
-				}
 			case "g":
-				r.scroll = 0
+				r.viewport.GotoTop()
 			case "G":
-				r.scroll = max(0, (r.maxscroll-r.vheight)+2)
+				r.viewport.GotoBottom()
 			case "+":
 				r.padding++
-				r.ResizeText()
+				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
 			case "-":
 				r.padding = max(0, r.padding-1)
-				r.ResizeText()
+				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
 			case "p":
 				// Previous chapter
-				first := r.verses[0]
-				chapter := first.Chapter
+				chapter := r.first.Chapter
 
 				if r.books == nil {
-					r.books, r.error = r.searcher.Booklist()
-					if r.error != nil {
+					var err error
+					r.books, err = r.searcher.Booklist()
+					if err != nil {
+						e := err.Error()
+						r.viewport.SetContent(style.ErrorStyle.Render(e))
 						return r, nil
 					}
 				}
 
 				// Handle being beginning of book
-				book := first.Book
+				book := r.first.Book
 				if chapter == 1 {
 					index := slices.IndexFunc(r.books, func(b model.Book) bool {
-						return b.Name == first.Book
+						return b.Name == r.first.Book
 					})
 					if index == -1 {
-						r.error = errors.New("error finding current book in booklist: not found")
+						e := "error finding current book in booklist: not found"
+						r.viewport.SetContent(style.ErrorStyle.Render(e))
 						return r, nil
 					} else if index == 0 {
 						book = r.books[len(r.books)-1].Name
@@ -201,33 +156,40 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = r.books[index-1].Chapters + 1
 					}
 				}
-				r.error = r.SetQuery(book + " " + strconv.Itoa(chapter-1))
-				if r.error != nil {
+				content, err := r.Query(book + " " + strconv.Itoa(chapter-1))
+				if err != nil {
+					e := err.Error()
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
 					return r, nil
 				}
+
+				r.viewport.SetContent(content)
 				return r, tea.SetWindowTitle(r.query)
 			case "n":
 				// Next chapter
-				last := r.verses[len(r.verses)-1]
-				chapter := last.Chapter
+				chapter := r.last.Chapter
 
 				if r.books == nil {
-					r.books, r.error = r.searcher.Booklist()
-					if r.error != nil {
+					var err error
+					r.books, err = r.searcher.Booklist()
+					if err != nil {
+						e := err.Error()
+						r.viewport.SetContent(style.ErrorStyle.Render(e))
 						return r, nil
 					}
 				}
 
 				index := slices.IndexFunc(r.books, func(b model.Book) bool {
-					return b.Name == last.Book
+					return b.Name == r.last.Book
 				})
 				if index == -1 {
-					r.error = errors.New("error when finding current book in booklist: not found")
+					e := "error finding current book in booklist: not found"
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
 					return r, nil
 				}
 
 				// Handle being end of book
-				book := last.Book
+				book := r.last.Book
 				if chapter == r.books[index].Chapters {
 					if index == len(r.books)-1 {
 						book = r.books[0].Name
@@ -237,28 +199,39 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						chapter = 0
 					}
 				}
-				r.error = r.SetQuery(book + " " + strconv.Itoa(chapter+1))
-				if r.error != nil {
+				content, err := r.Query(book + " " + strconv.Itoa(chapter+1))
+				if err != nil {
+					e := err.Error()
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
 					return r, nil
 				}
+
+				r.viewport.SetContent(content)
 				return r, tea.SetWindowTitle(r.query)
 			case "/":
-				r.state = searching
+				r.mode = searching
 			case "?":
-				r.state = help
+				r.mode = help
 			}
-		} else if r.state == searching {
+		} else if r.mode == searching {
 			switch msg.String() {
 			case "esc":
-				r.state = reading
+				r.mode = read
 				r.searchbuffer = ""
 			case "ctrl+c":
 				return r, tea.Quit
 			case "enter":
-				r.SetQuery(r.searchbuffer)
+				content, err := r.Query(r.searchbuffer)
+				if err != nil {
+					e := err.Error()
+					r.viewport.SetContent(style.ErrorStyle.Render(e))
+					return r, nil
+				}
+				r.viewport.SetContent(content)
+
 				title := r.searchbuffer
 				r.searchbuffer = ""
-				r.state = reading
+				r.mode = read
 				return r, tea.SetWindowTitle(title)
 			case "backspace":
 				if len(r.searchbuffer) > 0 {
@@ -270,65 +243,79 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					r.searchbuffer += string(runes[0])
 				}
 			}
-		} else if r.state == help {
+		} else if r.mode == help {
 			switch msg.String() {
 			case "esc", "q":
-				r.state = reading
+				r.mode = read
 			case "ctrl+c":
 				return r, tea.Quit
 			}
 		} else {
-			panic("Invalid state")
-		}
-	case tea.MouseMsg:
-		switch msg.String() {
-		case "wheel down":
-			if r.scroll < r.maxscroll {
-				r.scroll += min(3, r.maxscroll-r.scroll)
-			}
-		case "wheel up":
-			if r.scroll > 0 {
-				r.scroll -= min(3, r.scroll)
-			}
+			panic("Invalid mode")
 		}
 	case tea.WindowSizeMsg:
-		r.SetWindowSize(msg.Width, msg.Height)
+		if !r.ready {
+			r.viewport = viewport.New(msg.Width, msg.Height)
+
+			content, err := r.Query(r.query)
+			if err != nil {
+				e := err.Error()
+				r.viewport.SetContent(style.ErrorStyle.Render(e))
+				return r, nil
+			}
+
+			r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
+			r.viewport.SetContent(content)
+
+			r.ready = true
+		} else {
+			r.viewport.Width = msg.Width
+			r.viewport.Height = msg.Height
+		}
 	}
-	return r, nil
+
+	var cmd tea.Cmd
+	r.viewport, cmd = r.viewport.Update(msg)
+	return r, cmd
 }
 
 const helptext = "q/esc: quit\n\nj/k or up/down: scroll\n\ng/G: top/bottom\n\np/n: prev/next chapter\n\n+/-: increase/decrease padding\n\n/: search\n\n?: help"
 
 func (r *Reader) View() string {
-	var view strings.Builder
-	lpad := strings.Repeat(" ", r.padding)
-
-	if r.state == help {
-		hpad := (r.vwidth - lipgloss.Width(helptext)) / 2
-		vpad := (r.vheight - lipgloss.Height(helptext)) / 2
-		return style.SearchStyle.PaddingTop(vpad).PaddingLeft(hpad).Render(helptext)
+	if !r.ready {
+		return "\n  Initializing..."
 	}
+	return fmt.Sprintf("%s", r.viewport.View())
 
-	if r.error != nil {
-		view.WriteString(lpad + style.ErrorStyle.Render(r.error.Error()) + "\n")
-	} else {
-		for i := 0; i < r.vheight-1; i++ {
-			if r.scroll+i >= len(r.lines) {
-				break
-			}
-			view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
-		}
-	}
-
-	output := view.String()
-	if r.state == searching {
-		split := strings.Split(output, "\n")
-		for len(split) < r.vheight-1 {
-			split = append(split, "")
-		}
-		split[len(split)-1] = lpad + style.SearchStyle.Render("/"+r.searchbuffer)
-		output = strings.Join(split, "\n")
-	}
-
-	return output
+	// var view strings.Builder
+	// lpad := strings.Repeat(" ", r.Padding)
+	//
+	// if r.mode == help {
+	// 	hpad := (r.vwidth - lipgloss.Width(helptext)) / 2
+	// 	vpad := (r.vheight - lipgloss.Height(helptext)) / 2
+	// 	return style.SearchStyle.PaddingTop(vpad).PaddingLeft(hpad).Render(helptext)
+	// }
+	//
+	// if r.error != nil {
+	// 	view.WriteString(lpad + style.ErrorStyle.Render(r.error.Error()) + "\n")
+	// } else {
+	// 	for i := 0; i < r.vheight-1; i++ {
+	// 		if r.scroll+i >= len(r.lines) {
+	// 			break
+	// 		}
+	// 		view.WriteString(lpad + r.lines[r.scroll+i] + "\n")
+	// 	}
+	// }
+	//
+	// output := view.String()
+	// if r.mode == searching {
+	// 	split := strings.Split(output, "\n")
+	// 	for len(split) < r.vheight-1 {
+	// 		split = append(split, "")
+	// 	}
+	// 	split[len(split)-1] = lpad + style.SearchStyle.Render("/"+r.searchbuffer)
+	// 	output = strings.Join(split, "\n")
+	// }
+	//
+	// return output
 }
