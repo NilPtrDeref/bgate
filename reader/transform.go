@@ -6,37 +6,44 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func ResizeString(s string, width int, indentation string) []string {
-	words := strings.Split(s, " ")
-	var chunks []string
-	var current []string
-	var ccount int
+func ResizeString(s string, width int, indentation string) string {
+	lines := strings.Split(s, "\n")
 
-	for _, word := range words {
-		var wsize, _ = lipgloss.Size(word)
-		var size = width
-		if len(chunks) > 0 {
-			size -= lipgloss.Width(indentation)
-		}
+	var writer strings.Builder
 
-		if ccount+wsize > size {
+	for _, line := range lines {
+		words := strings.Split(line, " ")
+		var chunks []string
+		var current []string
+		var ccount int
+
+		for _, word := range words {
+			var wsize, _ = lipgloss.Size(word)
+			var size = width
 			if len(chunks) > 0 {
-				current[0] = indentation + current[0]
+				size -= lipgloss.Width(indentation)
 			}
-			chunks = append(chunks, strings.Join(current, " "))
 
-			ccount = 0
-			current = nil
+			if ccount+wsize > size {
+				if len(chunks) > 0 {
+					current[0] = indentation + current[0]
+				}
+				chunks = append(chunks, strings.Join(current, " "))
+
+				ccount = 0
+				current = nil
+			}
+
+			ccount += wsize + 1
+			current = append(current, word)
 		}
 
-		ccount += wsize + 1
-		current = append(current, word)
+		if len(chunks) > 0 {
+			current[0] = indentation + current[0]
+		}
+		chunks = append(chunks, strings.Join(current, " "))
+		writer.WriteString(strings.Join(chunks, "\n") + "\n")
 	}
 
-	if len(chunks) > 0 {
-		current[0] = indentation + current[0]
-	}
-	chunks = append(chunks, strings.Join(current, " "))
-
-	return chunks
+	return strings.TrimSpace(writer.String())
 }

@@ -81,7 +81,7 @@ func (r *Reader) Query(query string) (string, error) {
 		title := verse.HasTitle()
 		chapter := verse.Number == 1 && verse.Part == 1
 
-		if index != 0 && (title || chapter) {
+		if index > 0 && r.wrap && (title || chapter) {
 			writer.WriteString("\n")
 		}
 
@@ -93,18 +93,22 @@ func (r *Reader) Query(query string) (string, error) {
 			writer.WriteString(verse.ChapterString() + "\n")
 		}
 
-		if verse.Part > 1 {
-			writer.WriteString("    " + verse.Text)
-		} else {
-			writer.WriteString(verse.NumberString() + verse.Text)
+		if verse.Part == 1 {
+			writer.WriteString(verse.NumberString())
 		}
+
+		writer.WriteString(verse.Text + " ")
 
 		if !r.wrap {
 			writer.WriteString("\n")
 		}
 	}
 
-	return writer.String(), nil
+	indentation := "    "
+	if r.wrap {
+		indentation = ""
+	}
+	return ResizeString(writer.String(), r.viewport.Width-(2*r.padding), indentation), nil
 }
 
 func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -114,6 +118,14 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc", "q", "ctrl+c":
 				return r, tea.Quit
+			// case "j":
+			// 	if !r.viewport.AtBottom() {
+			// 		r.viewport.YOffset++
+			// 	}
+			// case "k":
+			// 	if !r.viewport.AtTop() {
+			// 		r.viewport.YOffset--
+			// 	}
 			case "g":
 				r.viewport.GotoTop()
 			case "G":
@@ -125,6 +137,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.padding = max(0, r.padding-1)
 				r.viewport.Style = r.viewport.Style.Padding(0, r.padding)
 			case "p":
+				r.viewport.YOffset = 0
+
 				// Previous chapter
 				chapter := r.first.Chapter
 
@@ -166,6 +180,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				r.viewport.SetContent(content)
 				return r, tea.SetWindowTitle(r.query)
 			case "n":
+				r.viewport.YOffset = 0
+
 				// Next chapter
 				chapter := r.last.Chapter
 
@@ -221,6 +237,8 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "ctrl+c":
 				return r, tea.Quit
 			case "enter":
+				r.viewport.YOffset = 0
+
 				content, err := r.Query(r.searchbuffer)
 				if err != nil {
 					e := err.Error()
@@ -255,7 +273,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if !r.ready {
-			r.viewport = viewport.New(msg.Width, msg.Height)
+			r.viewport = viewport.New(msg.Width, msg.Height-2)
 
 			content, err := r.Query(r.query)
 			if err != nil {
@@ -270,7 +288,7 @@ func (r *Reader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			r.ready = true
 		} else {
 			r.viewport.Width = msg.Width
-			r.viewport.Height = msg.Height
+			r.viewport.Height = msg.Height - 2
 		}
 	}
 
@@ -285,7 +303,7 @@ func (r *Reader) View() string {
 	if !r.ready {
 		return "\n  Initializing..."
 	}
-	return fmt.Sprintf("%s", r.viewport.View())
+	return fmt.Sprintf("%s\n%s\n%s", "header", r.viewport.View(), "footer")
 
 	// var view strings.Builder
 	// lpad := strings.Repeat(" ", r.Padding)
