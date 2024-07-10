@@ -2,9 +2,9 @@ package model
 
 import (
 	"fmt"
-
-	"github.com/charmbracelet/lipgloss"
-	"github.com/woodywood117/bgate/reader/style"
+r/style"
+	"github.com/charmbracelet/lipgloss"t/liple"
+	"github.com/charmbracegloss
 )
 
 type Verse struct {

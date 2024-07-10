@@ -6,11 +6,11 @@ import (
 	"path"
 	"time"
 
+	"github.com/NilPtrDeref/bgate/search"
+	"github.com/NilPtrDeref/bgate/search"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/woodywood117/bgate/search"
+	"github.com/spf13/cob
 )
 
 var download = &cobra.Command{

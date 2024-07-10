@@ -1,6 +1,6 @@
 package main
 
-import "github.com/woodywood117/bgate/cmd"
+import "github.com/NilPtrDeref/bgate/cmd"
 
 func main() {
 	cmd.Execute()

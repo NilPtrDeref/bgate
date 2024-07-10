@@ -8,9 +8,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
-	"github.com/woodywood117/bgate/reader/model"
+ader/model"
+	"github.com/PuerkitoBio/goquery""
+	"github.com/PuerkitoBio/goquery
 )
 
 type Remote struct {

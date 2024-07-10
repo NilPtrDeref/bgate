@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/woodywood117/bgate/reader/model"
+gate/reader/model"
+	"github.com/jmoiron/sqlx"xl"
+	"github.com/jmoiron/sq
 )
 
 func TranslationHasLocal(translation string) (bool, error) {
