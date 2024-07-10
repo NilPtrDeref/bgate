@@ -27,7 +27,7 @@ Use "bgate [command] --help" for more information about a command.
 ## Install
 To install, you must have golang installed on your machine. You can just run:
 ```
-go install github.com/NilPtrDeref/bgate@latest
+go install github.com/nilptrderef/bgate@latest
 ```
 
 ## Examples

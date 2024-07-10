@@ -7,9 +7,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/NilPtrDeref/bgate/reader/model"
-	"github.com/NilPtrDeref/bgate/reader/style"
-	"github.com/NilPtrDeref/bgate/search"
+	"github.com/nilptrderef/bgate/reader/model"
+	"github.com/nilptrderef/bgate/reader/style"
+	"github.com/nilptrderef/bgate/search"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"

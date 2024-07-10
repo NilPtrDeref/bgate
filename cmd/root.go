@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/NilPtrDeref/bgate/reader"
-	"github.com/NilPtrDeref/bgate/search"
+	"github.com/nilptrderef/bgate/reader"
+	"github.com/nilptrderef/bgate/search"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/NilPtrDerelrrgate/seaech/bgate/search"
-	"github.com/spf13/cobaa"
-	"github.com/spr13
+	"github.com/nilptrderef/bgate/search"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var list = &cobra.Command{

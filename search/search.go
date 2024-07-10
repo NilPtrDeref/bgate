@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/NilPtrDeref/bgate/reader/model"
+	"github.com/nilptrderef/bgate/reader/model"
 )
 
 type Searcher interface {
