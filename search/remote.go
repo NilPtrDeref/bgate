@@ -89,8 +89,9 @@ func (r *Remote) Query(query string) ([]model.Verse, error) {
 			}
 
 			csplit = strings.Split(csplit[1], "-")
-			if len(csplit) != 3 {
+			if len(csplit) < 3 {
 				fmt.Println("Unexpected inner class format")
+				fmt.Println(csplit)
 				os.Exit(1)
 			}
 
